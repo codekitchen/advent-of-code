@@ -1,11 +1,16 @@
-groups = DATA.read.split("\n\n").map do |group|
-    answers = Hash.new(0)
-    people = group.split("\n")
-    people.each { |p| p.chars.each { |c| answers[c] += 1} }
-    [people.size, answers]
-end
-p groups.map { |c, g| g.filter { |k,v| v == c }.size }.sum
+require 'set'
 
+# groups = DATA.read.split("\n\n").map do |group|
+#     answers = Hash.new(0)
+#     people = group.split("\n")
+#     people.each { |p| p.chars.each { |c| answers[c] += 1} }
+#     [people.size, answers]
+# end
+# p groups.map { |c, g| g.filter { |k,v| v == c }.size }.sum
+
+data = DATA.read
+p data.split("\n\n").map { |group| group.split("\n").map { |line| line.chars.to_set }.reduce(:|).size }.sum
+p data.split("\n\n").map { |group| group.split("\n").map { |line| line.chars.to_set }.reduce(:&).size }.sum
 
 __END__
 f
