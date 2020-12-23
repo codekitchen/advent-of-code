@@ -3,7 +3,20 @@ REAL = "418976235"
 PT2 = true
 
 input = REAL
+
+class Array
+    def link_each(starting=1)
+        return to_enum(:link_each, starting) unless block_given?
+        cur = starting
+        loop do
+            cur = self[cur]
+            break if cur == starting
+            yield cur
+        end
+    end
+end
 cups = Array.new(PT2 ? 1_000_001 : input.size+1, nil)
+
 init = input.split(//).map(&:to_i)
 cups[init[-1]] = init[0]
 1.upto(init.size-1) { |i| cups[init[i-1]] = init[i] }
@@ -21,16 +34,9 @@ cycles = PT2 ? 10_000_000 : 100
 cycles.times do |i|
     # puts "\n-- move #{i+1} --"
 
-    # print "cups: "
-    # pc = 1
-    # loop do
-    #     print(pc == cur ? "(#{pc}) " : "#{pc} ")
-    #     pc = cups[pc]
-    #     break if pc == 1
-    # end
-    # puts
-    # puts "cups: #{cups.map { |c| cur == c ? "(#{c})" : c }.join(' ')}"
+    # puts "cups: #{cups.link_each(cur).to_a.join(' ')}"
     pick = [cups[cur], cups[cups[cur]], cups[cups[cups[cur]]]]
+    # pick = cups.link_each(cur).take(3)
     # puts "pick up: #{pick.join(", ")}"
 
     dest = cur - 1
@@ -50,15 +56,8 @@ cycles.times do |i|
 end
 
 if PT2
-    a = cups[1]
-    b = cups[a]
+    a, b = cups.link_each.take(2)
     puts "#{a} * #{b} = #{a*b}"
 else
-    p1 = cups[1]
-    loop do
-        print p1
-        p1 = cups[p1]
-        break if p1 == 1
-    end
-    puts
+    puts cups.link_each.to_a.join
 end
