@@ -1,7 +1,4 @@
-#[allow(unused_imports)]
-use std::process::exit;
-#[allow(dead_code)]
-#[allow(unused_variables)]
+#!/usr/bin/env rust-script
 
 fn link_each<'a>(cups: &'a[usize], start: usize) -> impl Iterator<Item=usize> + 'a {
     // std::iter::successors(Some(cups[start]), move |&cur| Some(cups[cur]))
