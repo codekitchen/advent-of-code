@@ -1,125 +1,126 @@
-#!/usr/bin/env rust-script
-// cargo-deps: regex, lazy_static
-#![allow(dead_code)]
+package main
 
-use std::collections::HashSet;
-use std::ops;
-use regex::Regex;
-#[macro_use] extern crate lazy_static;
+import (
+	"fmt"
+	"strings"
+)
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default)]
-struct Coord {
-    row: i32,
-    col: i32,
+type coord struct {
+	row, col int
 }
 
-impl Coord {
-    const ZERO: Self = Self { row: 0, col: 0 };
-    fn neighbors(self) -> [Self; 6] {
-        [ self + E, self + W, self + SE, self + NE, self + SW, self + NW, ]
-    }
+var dirs []string
+
+func init() {
+	dirs = []string{"e", "w", "se", "ne", "sw", "nw"}
 }
 
-#[derive(Debug, Default)]
-struct Grid {
-    grid: HashSet<Coord>,
+func Abs(v int) int {
+	if v < 0 {
+		return -v
+	}
+	return v
 }
 
-enum Dir {
-    E, W, NE, NW, SE, SW,
-}
-use Dir::*;
-
-impl ops::Add<Dir> for Coord {
-    type Output = Coord;
-    fn add(self, dir: Dir) -> Coord {
-        let even_row = self.row % 2 == 0;
-        let (dr, dc) = match dir {
-            E => (0,1),
-            W => (0,-1),
-            SE => (1, if even_row { 0 } else { 1 }),
-            NE => (-1, if even_row { 0 } else { 1 }),
-            SW => (1, if even_row { -1 } else { 0 }),
-            NW => (-1, if even_row { -1 } else { 0 }),
-        };
-        Coord { row: self.row + dr, col: self.col + dc }
-    }
-}
-
-fn split<'a>(id: &'a str) -> impl Iterator<Item=Dir> + 'a {
-    // needs nightly feature:
-    // id.split_inclusive(&['e', 'w'] as &[_])
-    lazy_static! {
-        static ref RE: Regex = Regex::new(r"ne|nw|se|sw|e|w").unwrap();
-    }
-    RE.captures_iter(id).map(move |cap| {
-        match &cap[0] {
-            "e" => E, "w" => W, "ne" => NE, "nw" => NW, "se" => SE, "sw" => SW,
-            _ => panic!("bad input {}", id),
-        }
-    })
+func (c coord) move(dir string) coord {
+	var dr, dc int
+	switch dir {
+	case "e":
+		dc = 1
+	case "w":
+		dc = -1
+	case "se":
+		dr = 1
+		dc = Abs(c.row % 2)
+	case "ne":
+		dr = -1
+		dc = Abs(c.row % 2)
+	case "sw":
+		dr = 1
+		dc = -1 + Abs(c.row%2)
+	case "nw":
+		dr = -1
+		dc = -1 + Abs(c.row%2)
+	}
+	return coord{c.row + dr, c.col + dc}
 }
 
-impl Grid {
-    fn parse(id: &str) -> Coord {
-        split(id).fold(Coord::ZERO, ops::Add::add)
-    }
-
-    fn flip<I: IntoIterator<Item=Coord>>(&mut self, cs: I) {
-        for c in cs {
-            if !self.grid.insert(c) {
-                self.grid.remove(&c);
-            }
-        }
-    }
-
-    fn count(&self) -> usize {
-        return self.grid.len()
-    }
-
-    fn update(&self) -> Vec<Coord> {
-        let mut clear_to_check = HashSet::new();
-        let mut flips = vec![];
-
-        let partitioned_neighbors = |tile: Coord| -> (Vec<Coord>, Vec<Coord>) {
-            tile.neighbors().iter().partition(|n| self.grid.contains(n))
-        };
-
-        for tile in &self.grid {
-            let (set_neighbors, clear_neighbors) = partitioned_neighbors(*tile);
-            clear_to_check.extend(clear_neighbors);
-            if set_neighbors.len() < 1 || set_neighbors.len() > 2 {
-                flips.push(*tile)
-            }
-        }
-        for tile in clear_to_check {
-            let (set_neighbors, _) = partitioned_neighbors(tile);
-            if set_neighbors.len() == 2 {
-                flips.push(tile)
-            }
-        }
-        flips
-    }
+func parse(moves string) (c coord) {
+	for idx := 0; idx < len(moves); {
+		switch moves[idx : idx+1] {
+		case "e", "w":
+			c = c.move(moves[idx : idx+1])
+			idx++
+		default:
+			c = c.move(moves[idx : idx+2])
+			idx += 2
+		}
+	}
+	return
 }
 
-fn main() {
-    let input = FULL;
-    let mut grid = Grid::default();
-    assert_eq!(Coord { row: 1, col: 0 }, Grid::parse("esew"));
-    assert_eq!(Coord { row: 0, col: 0 }, Grid::parse("nwwswee"));
-    assert_eq!(Coord { row: -1, col: 0 }, Grid::parse("ne"));
-    assert_eq!(Coord { row: -1, col: -1 }, Grid::parse("new"));
-    assert_eq!(Coord { row: -2, col: 2 }, Grid::parse("nenee"));
-    let initial_flips = input.split('\n').map(Grid::parse);
-    grid.flip(initial_flips);
-    eprintln!("Initial: {}", grid.count());
-    for day in 1..=100 {
-        grid.flip(grid.update());
-        eprintln!("Day {}: {}", day, grid.count());
-    }
+// Grid is grid
+type Grid struct {
+	grid map[coord]bool
 }
 
-const SMALL: &str = "sesenwnenenewseeswwswswwnenewsewsw
+func (grid *Grid) flip(c coord) {
+	if _, ok := grid.grid[c]; ok {
+		delete(grid.grid, c)
+	} else {
+		grid.grid[c] = true
+	}
+}
+
+func (grid *Grid) update() (updates []coord) {
+	clearToCheck := make(map[coord]bool)
+
+	partition := func(c coord) (set, clear []coord) {
+		for _, dir := range dirs {
+			neighbor := c.move(dir)
+			if _, ok := grid.grid[neighbor]; ok {
+				set = append(set, neighbor)
+			} else {
+				clear = append(clear, neighbor)
+			}
+		}
+		return
+	}
+
+	for tile := range grid.grid {
+		setNeighbors, clearNeighbors := partition(tile)
+		for _, c := range clearNeighbors {
+			clearToCheck[c] = true
+		}
+		if len(setNeighbors) < 1 || len(setNeighbors) > 2 {
+			updates = append(updates, tile)
+		}
+	}
+	for tile := range clearToCheck {
+		setNeighbors, _ := partition(tile)
+		if len(setNeighbors) == 2 {
+			updates = append(updates, tile)
+		}
+	}
+	return
+}
+
+func main() {
+	var input = full
+	grid := Grid{make(map[coord]bool)}
+	for _, flipstr := range strings.Split(input, "\n") {
+		grid.flip(parse(flipstr))
+	}
+	fmt.Printf("Initial: %d\n", len(grid.grid))
+	for day := 1; day <= 100; day++ {
+		for _, update := range grid.update() {
+			grid.flip(update)
+		}
+		fmt.Printf("Day %d: %d\n", day, len(grid.grid))
+	}
+}
+
+const small = `sesenwnenenewseeswwswswwnenewsewsw
 neeenesenwnwwswnenewnwwsewnenwseswesw
 seswneswswsenwwnwse
 nwnwneseeswswnenewneswwnewseswneseene
@@ -138,9 +139,9 @@ wnwnesenesenenwwnenwsewesewsesesew
 nenewswnwewswnenesenwnesewesw
 eneswnwswnwsenenwnwnwwseeswneewsenese
 neswnwewnwnwseenwseesewsenwsweewe
-wseweeenwnesenwwwswnew";
+wseweeenwnesenwwwswnew`
 
-const FULL: &str = "wenwwsenwwwwnwwnwwwnwsewseewe
+const full = `wenwwsenwwwwnwwnwwwnwsewseewe
 nenenwnenenenwnwnenenwneneseseswnenwwne
 newewwwwwwswwwww
 esenwwwswwnwnwswnwnwnwewnwsenwswwnwe
@@ -454,4 +455,4 @@ swswswnwswseswswwswsweswneswseswswswe
 sewwneseseswneseseseneswseswseseew
 nwneneenenesweneneneenenenenweesw
 sesesenwneewseseeenwnwneenwwswnwswsw
-weseneseeneneneweeswewnesesewsw";
+weseneseeneneneweeswewnesesewsw`
