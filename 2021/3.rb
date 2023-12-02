@@ -1,3 +1,67 @@
+#!/usr/bin/env ruby
+###
+# impl
+###
+
+def most_common(nums, col)
+  digits = nums.map { _1[col] }
+  digits.count("0") > digits.count("1") ? 0 : 1 # digits.tally.max_by{_2}.first.to_i
+end
+
+def part1(input)
+  nums = input.lines.map(&:chomp)
+  commons = nums[0].size.times.map { |i| most_common(nums, i) }
+  gamma = commons.join.to_i(2)
+  epsilon = commons.map { 1 - _1 }.join.to_i(2)
+  gamma * epsilon
+end
+
+def part2(input)
+  nums = input.lines.map(&:chomp)
+
+  oxy_candidates = nums
+  idx = 0
+  while oxy_candidates.length > 1
+    com = most_common(oxy_candidates, idx)
+    oxy_candidates = oxy_candidates.select { _1[idx] == com.to_s }
+    idx += 1
+  end
+
+  c02_candidates = nums
+  idx = 0
+  while c02_candidates.length > 1
+    com = 1 - most_common(c02_candidates, idx)
+    c02_candidates = c02_candidates.select { _1[idx] == com.to_s }
+    idx += 1
+  end
+
+  oxy_candidates.first.to_i(2) * c02_candidates.first.to_i(2)
+end
+
+###
+# data and runner
+###
+
+SHORT = %{00100
+11110
+10110
+10111
+10101
+01111
+00111
+11100
+10000
+11001
+00010
+01010}
+FULL = DATA.read
+
+puts "part1 short", (part1 SHORT)
+puts "part1 full", (part1 FULL)
+puts "part2 short", (part2 SHORT)
+puts "part2 full", (part2 FULL)
+
+__END__
 110001101000
 111011011100
 100001101100
