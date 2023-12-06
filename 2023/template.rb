@@ -1,4 +1,4 @@
-#!/usr/bin/env ruby
+#!/usr/bin/env ruby --yjit
 ###
 # impl
 ###
@@ -16,9 +16,9 @@ end
 SHORT = %{}
 FULL = DATA.read
 
-puts "part1 short", (part1 SHORT)
-puts "part1 full", (part1 FULL)
-puts "part2 short", (part2 SHORT)
-puts "part2 full", (part2 FULL)
+puts "part1 short", (part1 SHORT).inspect
+puts "part1 full", (part1 FULL).inspect
+puts "part2 short", (part2 SHORT).inspect
+puts "part2 full", (part2 FULL).inspect
 
 __END__
