@@ -2,6 +2,7 @@
 ###
 # impl
 ###
+require_relative './../utils'
 
 def part1(input)
 end
