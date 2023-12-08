@@ -12,12 +12,12 @@ STRENGTH =  %w[A K Q J T 9 8 7 6 5 4 3 2].reverse
 STRENGTH2 = %w[A K Q T 9 8 7 6 5 4 3 2 J].reverse
 RANKS = [
   [1,1,1,1,1], # high card
-  [1,1,1,2], # one pair
-  [1,2,2], # two pair
-  [1,1,3], # three of a kind
-  [2,3], # full house
-  [1,4], # four of a kind
-  [5], # five of a kind
+  [1,1,1,2],   # one pair
+  [1,2,2],     # two pair
+  [1,1,3],     # three of a kind
+  [2,3],       # full house
+  [1,4],       # four of a kind
+  [5],         # five of a kind
 ]
 def rank(hand) = RANKS.find_index(hand.chars.tally.values.sort)
 assert_eq 6, rank("AAAAA")
