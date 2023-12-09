@@ -21,3 +21,8 @@ module Enumerable
     if_none.() if if_none
   end
 end
+
+# produce until nil/false returned
+def unfold(seed)
+  Enumerator.produce(seed) { yield(_1) || raise(StopIteration) }
+end
