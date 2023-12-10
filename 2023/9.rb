@@ -22,8 +22,10 @@ def part1(input)
     .lines
     .map { _1.split.map(&:to_i) }
     .sum do |ints|
-      seqs = unfold(ints) { |step| step.each_cons(2).map { _2-_1 } unless step.all?(&:zero?) }
-      seqs.sum { _1.last }
+      # seqs = unfold(ints) { |step| step.each_cons(2).map { _2-_1 } unless step.all?(&:zero?) }
+      Enumerator.produce(ints) { |step| step.each_cons(2).map { _2-_1 } }
+        .take_while { |step| !step.all?(&:zero?) }
+        .sum { _1.last }
   end
 end
 
