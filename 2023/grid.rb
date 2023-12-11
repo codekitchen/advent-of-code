@@ -3,11 +3,12 @@ class Grid
 
   attr_reader :cols, :rows, :data
 
-  def initialize(cols, rows, data=nil)
+  def initialize(cols, rows, data=nil, seed: nil)
     @cols = cols
     @rows = rows
     n = rows*cols
     raise("bad input length: #{data.length}") if data && data.length != n
+    data = seed*n if seed
     @data = data || Array.new(n)
   end
 
@@ -62,7 +63,7 @@ class Grid
       map { |c|
         nl=lasty&&lasty!=c.y&&"\n"
         lasty = c.y
-        "#{nl||''}#{c.get || ' '}"
+        "#{nl||''}#{c.get || '⌀'}"
       }.join
     end
   end
@@ -86,19 +87,12 @@ class Grid
     def u = relative( 0, -1)
     def d = relative( 0,  1)
 
-    def connected
-      case get
-      when ?- then [l,r]
-      when ?| then [u,d]
-      when ?7 then [l,d]
-      when ?F then [r,d]
-      when ?J then [l,u]
-      when ?L then [r,u]
-      end.compact
-    end
-
     def neighbors
-      [l, r, u, d].compact
+      return to_enum(__method__) unless block_given?
+      yield l unless x == 0
+      yield r unless x+1 == grid.cols
+      yield u unless y == 0
+      yield d unless y+1 == grid.rows
     end
   end
 end

@@ -6,6 +6,19 @@ require_relative './../utils'
 require_relative './grid'
 require 'set'
 
+using Module.new { refine Grid::Cell do
+  def connected
+    case get
+    when ?- then [l,r]
+    when ?| then [u,d]
+    when ?7 then [l,d]
+    when ?F then [r,d]
+    when ?J then [l,u]
+    when ?L then [r,u]
+    end.compact
+  end
+end }
+
 def part1(input, start_shape)
   grid = Grid.from_input(input)
   start = grid.find { _1.get == 'S' }
@@ -35,7 +48,7 @@ def part2(input, start_shape)
   end
   in_loop = Set.new distances.keys
 
-  g2 = Grid.new(grid.cols*2, grid.rows*2, '.'*grid.cols*grid.rows*4)
+  g2 = Grid.new(grid.cols*2, grid.rows*2, seed:'.')
   expanded_loop = in_loop.map { |c| c2 = g2.at(c.x*2, c.y*2); c2.set(c.get); c2 }
   expanded_loop = Set.new(expanded_loop + expanded_loop.flat_map do |c|
     case c.get
