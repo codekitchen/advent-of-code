@@ -37,7 +37,7 @@ def part2(input, start_shape)
 
   g2 = Grid.new(grid.cols*2, grid.rows*2, '.'*grid.cols*grid.rows*4)
   expanded_loop = in_loop.map { |c| c2 = g2.at(c.x*2, c.y*2); c2.set(c.get); c2 }
-  expanded_loop += expanded_loop.flat_map do |c|
+  expanded_loop = Set.new(expanded_loop + expanded_loop.flat_map do |c|
     case c.get
     when ?F; [g2.at(c.x+1, c.y)&.set('-'), g2.at(c.x, c.y+1)&.set('|')]
     when ?L; [g2.at(c.x+1, c.y)&.set('-')]
@@ -45,10 +45,13 @@ def part2(input, start_shape)
     when ?-; [g2.at(c.x+1, c.y)&.set('-')]
     when ?|; [g2.at(c.x, c.y+1)&.set('|')]
     end
-  end
+  end)
   old = grid
   grid = g2
 
+  # if I'd expanded x3 I could just start the queue with [0,0], since there's a ring
+  # of empty space around everything.
+  # but expanding x2 I need to flood fill from all empty space on the edges
   q = [
     grid[0..,0].select {!expanded_loop.include? _1},
     grid[0..,grid.rows-1].select {!expanded_loop.include? _1},
@@ -58,16 +61,14 @@ def part2(input, start_shape)
   until q.empty?
     n = q.shift
     n.set('O')
-    q += n.neighbors.reject { expanded_loop.include?(_1) || _1.get == 'O' || q.include?(_1) }
-    print "\rq size #{q.size}          "
-  end
-  puts
-  grid.each do |c|
-    c.set 'I' if c.x % 2 == 0 && c.y % 2 == 0 && !expanded_loop.include?(c) && !(c.get == 'O')
+    q.push(*n.neighbors.reject { expanded_loop.include?(_1) || _1.get == 'O' || q.include?(_1) })
   end
   old.each { |c| c.set(grid[c.x*2, c.y*2]) }
   grid = old
-  puts grid
+  grid.each do |c|
+    c.set 'I' if !in_loop.include?(c) && !(c.get == 'O')
+  end
+  # puts grid
   grid.count { _1.get == 'I' }
 end
 
@@ -116,9 +117,9 @@ L.L7LFJ|||||FJL7||LJ
 L7JLJL-JLJLJL--JLJ.L}
 FULL = DATA.read
 
-# puts "part1 short1", (part1 SHORT1, ?F).inspect
-# puts "part1 short2", (part1 SHORT2, ?F).inspect
-# puts "part1 full", (part1 FULL, ?L).inspect
+puts "part1 short1", (part1 SHORT1, ?F).inspect
+puts "part1 short2", (part1 SHORT2, ?F).inspect
+puts "part1 full", (part1 FULL, ?L).inspect
 puts "part2 short3", (part2 SHORT3, ?F).inspect
 puts "part2 short4", (part2 SHORT4, ?F).inspect
 puts "part2 short5", (part2 SHORT5, ?7).inspect

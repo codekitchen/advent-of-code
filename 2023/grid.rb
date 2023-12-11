@@ -77,43 +77,28 @@ class Grid
       self
     end
 
-    def r
-      n = grid.at(x+1, y)
-      n && self.get =~ /[-FL]/ && n.get =~ /[-7J]/ && n
+    def relative(x2, y2)
+      grid.at(x+x2, y+y2)
     end
-    def l
-      n = grid.at(x-1, y)
-      n && self.get =~ /[-7J]/ && n.get =~ /[-FL]/ && n
-    end
-    def u
-      n = grid.at(x, y-1)
-      n && self.get =~ /[\|LJ]/ && n.get =~ /[\|F7]/ && n
-    end
-    def d
-      n = grid.at(x, y+1)
-      n && self.get =~ /[\|F7]/ && n.get =~ /[\|LJ]/ && n
-    end
+
+    def l = relative(-1,  0)
+    def r = relative( 1,  0)
+    def u = relative( 0, -1)
+    def d = relative( 0,  1)
 
     def connected
-      [l, r, u, d].compact
-    end
-
-    def inside_corner
       case get
-      when 'F' then grid.at(x+1, y+1)
-      when '7' then grid.at(x-1, y+1)
-      when 'J' then grid.at(x-1, y-1)
-      when 'L' then grid.at(x+1, y-1)
-      end
+      when ?- then [l,r]
+      when ?| then [u,d]
+      when ?7 then [l,d]
+      when ?F then [r,d]
+      when ?J then [l,u]
+      when ?L then [r,u]
+      end.compact
     end
 
     def neighbors
-      [
-        grid.at(x-1, y),
-        grid.at(x+1, y),
-        grid.at(x, y-1),
-        grid.at(x, y+1),
-      ].compact
+      [l, r, u, d].compact
     end
   end
 end
