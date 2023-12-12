@@ -1,12 +1,14 @@
+require_relative '../utils'
+
 class Grid
   include Enumerable
 
-  attr_reader :cols, :rows, :data
+  attr_reader :width, :height, :data
 
-  def initialize(cols, rows, data=nil, seed: nil)
-    @cols = cols
-    @rows = rows
-    n = rows*cols
+  def initialize(width, height, data=nil, seed: nil)
+    @width = width
+    @height = height
+    n = width*height
     raise("bad input length: #{data.length}") if data && data.length != n
     data = seed*n if seed
     @data = data || Array.new(n)
@@ -17,19 +19,21 @@ class Grid
     new(input.first.size, input.size, input.join)
   end
 
-  def each(&)
-    self[0..,0..].each(&)
-  end
+  # returns a Rect covering the entire grid
+  def all = self[0..,0..]
+  def each(&) = all.each(&)
+  def rows(&) = all.rows(&)
+  def cols(&) = all.cols(&)
 
   def[](x,y)
     if Range === x
       x = Range.new(0, x.end, x.exclude_end?) if x.begin.nil?
-      x = (x.begin...@cols) if x.end.nil?
+      x = (x.begin...@width) if x.end.nil?
       y = (y..y) if Integer === y
     end
     if Range === y
       y = Range.new(0, y.end, y.exclude_end?) if y.begin.nil?
-      y = (y.begin...@rows) if y.end.nil?
+      y = (y.begin...@height) if y.end.nil?
       x = (x..x) if Integer === x
     end
     if Integer === x
@@ -39,23 +43,39 @@ class Grid
     end
   end
 
+  def in_bounds?(x,y)
+    x >= 0 && y >= 0 && x < @width && y < @height
+  end
+
   def at(x,y)
-    return nil if x < 0 || y < 0 || x >= cols || y >= rows
-    Cell.new(self, x, y, x+y*@cols)
+    return nil unless in_bounds?(x,y)
+    Cell.new(self, x, y, x+y*@width)
   end
 
   def inspect
-    "#<Grid #{cols}x#{rows}>"
+    "#<Grid #{width}x#{height}>"
   end
 
-  def to_s
-    self[0..,0..].to_s
-  end
+  def to_s = all.to_s
 
   Rect = Data.define(:grid, :xrange, :yrange) do
     include Enumerable
+
     def each
+      return to_enum(__method__) unless block_given?
       yrange.each { |y| xrange.each { |x| yield grid.at(x, y) } }
+    end
+
+    def rows
+      yrange.map { |y| grid[xrange,y] }
+    end
+
+    def cols
+      xrange.map { |x| grid[x,yrange] }
+    end
+
+    def get
+      map(&:get)
     end
 
     def to_s
@@ -90,9 +110,15 @@ class Grid
     def neighbors
       return to_enum(__method__) unless block_given?
       yield l unless x == 0
-      yield r unless x+1 == grid.cols
+      yield r unless x+1 == grid.width
       yield u unless y == 0
-      yield d unless y+1 == grid.rows
+      yield d unless y+1 == grid.height
     end
   end
 end
+
+assert_eq Grid.new(3,3,'123456789').map(&:get), '123456789'.split(//)
+assert_eq Grid.new(3,3,'123456789').rows.map(&:get), [%w[1 2 3], %w[4 5 6], %w[7 8 9]]
+assert_eq Grid.new(3,3,'123456789').cols.map(&:get), [%w[1 4 7], %w[2 5 8], %w[3 6 9]]
+assert_eq Grid.new(4,4,'0123456789ABCDEF')[1..2,1..2].rows.map(&:get), [%w[5 6], %w[9 A]]
+assert_eq Grid.new(4,4,'0123456789ABCDEF')[1..2,1..2].cols.map(&:get), [%w[5 9], %w[6 A]]

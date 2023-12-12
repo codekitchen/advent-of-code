@@ -48,7 +48,7 @@ def part2(input, start_shape)
   end
   in_loop = Set.new distances.keys
 
-  g2 = Grid.new(grid.cols*2, grid.rows*2, seed:'.')
+  g2 = Grid.new(grid.width*2, grid.height*2, seed:'.')
   expanded_loop = in_loop.map { |c| c2 = g2.at(c.x*2, c.y*2); c2.set(c.get); c2 }
   expanded_loop = Set.new(expanded_loop + expanded_loop.flat_map do |c|
     case c.get
@@ -67,9 +67,9 @@ def part2(input, start_shape)
   # but expanding x2 I need to flood fill from all empty space on the edges
   q = [
     grid[0..,0].select {!expanded_loop.include? _1},
-    grid[0..,grid.rows-1].select {!expanded_loop.include? _1},
+    grid[0..,grid.height-1].select {!expanded_loop.include? _1},
     grid[0,0..].select {!expanded_loop.include? _1},
-    grid[grid.cols-1,0..].select {!expanded_loop.include? _1},
+    grid[grid.width-1,0..].select {!expanded_loop.include? _1},
   ].flatten
   until q.empty?
     n = q.shift

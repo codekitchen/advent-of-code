@@ -2,30 +2,14 @@
 ###
 # impl
 ###
-require_relative './../utils'
-require_relative './grid'
+require_relative '../utils'
+require_relative 'grid'
 
-def part1(input)
-  g = input.lines.map { _1.strip.chars }
-  es = g.each_with_index.map { |l,i| i if l.all? { _1 == '.' } }.compact
-  es.reverse.each { |i| g.insert(i, g[i]) }
-  g = g.transpose
-  es = g.each_with_index.map { |l,i| i if l.all? { _1 == '.' } }.compact
-  es.reverse.each { |i| g.insert(i, g[i]) }
-  g = g.transpose
-  g = Grid.new(g.first.size, g.size, g.join)
-
-  gals = g.select { _1.get == '#' }
-  gals.combination(2).sum { (_2.y-_1.y).abs + (_2.x-_1.x).abs }
-end
-
-def part2(input, factor)
+def part1(input, factor=2)
   factor-=1
-  g = input.lines.map { _1.strip.chars }
-  eys = g.each_index.select { |i| !g[i].index '#' }.to_set
-  g2 = g.transpose
-  exs = g2.each_index.select { |i| !g2[i].index '#' }.to_set
-  g = Grid.new(g.first.size, g.size, g.join)
+  g = Grid.from_input(input)
+  eys = g.rows.filter_map { |s| s.get.any?('#') ? nil : s.first.y }.to_set
+  exs = g.cols.filter_map { |s| s.get.any?('#') ? nil : s.first.x }.to_set
 
   gals = g.select { _1.get == '#' }
   gals.combination(2).sum do
@@ -36,6 +20,10 @@ def part2(input, factor)
       (factor * (eys & ys).count) +
       (factor * (exs & xs).count)
   end
+end
+
+def part2(input, factor)
+  part1(input, factor)
 end
 
 ###
