@@ -1,120 +1,37 @@
 #!/usr/bin/env ruby --yjit
-### LOL this turned into a mess
-### functions `a` and `b` are dead code, approaches that weren't fast enough
-### dunno why it took me so long to come up with approach `c`
 
 ###
 # impl
 ###
 require_relative './../utils'
 
-def runs(row) = row.scan(/#+/).map(&:size)
-def matches?(row, nums) = runs(row) == nums
 def unfold(row, nums, n=5) = [([row]*n).join('?'), nums.cycle(n).to_a]
 assert_eq unfold('.#', [1], 5), ['.#?.#?.#?.#?.#', [1,1,1,1,1]]
-def prefix_matches(n1, n2)
-  n1.size.downto(0) { |n| return n if n1[0...n] == n2[0...n] }
-end
-assert_eq 2, prefix_matches([1,2,3,4], [1,2,6,5])
 
-def a(field, nums, pr=false)
-  puts "searching #{field} #{nums}" if pr
-  counts = 0
-  qs = (0...field.size).select { field[_1] == '?' }
-  tmpl = field.gsub('?', '.').freeze
-
-  puts "qs1 #{qs}" if pr
-  qs = qs.reject { |i| str = tmpl.dup.tap { _1[i] = '#' }; sizes = runs(str); (sizes.max || 0) > nums.max }
-  puts "qs2 #{qs}" if pr
-
-  return matches?(tmpl, nums) ? 1 : 0 if qs.empty?
-
-  total_broken = nums.sum
-  starting_broken = tmpl.chars.count('#')
-  needed_broken = total_broken - starting_broken
-
-  n = needed_broken
-  puts "search space #{qs.combination(n).size}" if pr
-  qs.combination(n) do |brokens|
-    str = tmpl.dup
-    brokens.each { |i| str[i] = '#' }
-    (counts += 1;) if matches?(str, nums)
+def parse_count(str, nums, memo={})
+  n = nums[0] || 0
+  memo[[str, nums]] ||= case str
+  when nil, ''
+    nums.empty? ? 1 : 0
+  when /^[.]/
+    # blank, just skip
+    parse_count(str[1..], nums, memo)
+  when /^[?][#?]{#{n-1}}(?![#])/
+    # leading ?, so go both ways
+    # take this parse
+    parse_count(str[n+1..], nums[1..], memo) +
+    # skip this parse
+    parse_count(str[1..], nums, memo)
+  when /^[#][#?]{#{n-1}}(?![#])/
+    # leading #, take this parse
+    parse_count(str[n+1..], nums[1..], memo)
+  when /^[#]/
+    # leading # but no parse, no solution
+    0
+  else # leading ? but no parse
+    # skip this parse
+    parse_count(str[1..], nums, memo)
   end
-  puts "found #{counts}" if pr
-  counts
-end
-assert_eq 1, a('???.###', [1,1,3])
-assert_eq 10, a('?###????????', [3,2,1])
-
-def b(field, nums, pr=false)
-  total = nums.sum
-  defs = (0...field.size).select { field[_1] == '#' }.to_set
-
-  # for each num
-  #   find all ranges the num could fit in, if all ? were #
-  # for each product of those sets of ranges
-  #   check that they aren't touching and don't overlap
-  filled = field#.tr('?', '#')
-  ranges = nums.map do |n|
-    starts = (0..(filled.size-n)).select { |i| (i==0 || filled[i-1] != '#') && filled[i...n+i] =~ /^[\?#]+$/ && filled[n+i] != '#' }
-    starts.map { _1...n+_1 }.map(&:to_set)
-  end
-
-  wut = ranges[0].product(*ranges[1..]).select do |rs|
-    rs = rs.sort_by { _1.min }
-    rs.map(&:size) == nums &&
-    (defs & rs.inject(:|) == defs) &&
-    rs.each_cons(2).all? { |a,b| b.min - a.max > 1 }
-  end
-  wut.map { |rs| rs.inject(:|) }.uniq.size
-end
-
-def valid_loc?(field, pos, sz)
-  pos+sz <= field.size &&
-  (pos == 0 || field[pos-1] != '#') &&
-  field[pos...(pos+sz)] =~ /^[\?#]+$/ &&
-  field[pos+sz] != '#'
-end
-def valid_locs(field, start, num, rest)
-  rpad = rest.size + rest.sum
-  next_hash = field.index('#', start) || field.size
-  right = [next_hash+1, (start+field.size-rpad)].min
-  # puts "searching #{start} ... #{right}"
-  (start...right).select { |i| valid_loc?(field, i, num) }
-end
-assert_eq valid_locs("???.###", 0, 1, [1,3]), [0]
-assert_eq valid_locs("???.###", 2, 1, [3]), [2]
-assert_eq valid_locs(".??..??...?##.", 0, 1, [1, 3]), [1, 2, 5, 6]
-assert_eq valid_locs(".??..??...?##.", 7, 3, []), [10]
-assert_eq valid_locs("#..?..", 0, 1, []), [0]
-assert_eq valid_locs("?..#..", 0, 1, []), [0,3]
-
-MEMO = {}
-def c2(field, start, num, rest, starts=[])
-  k = [start, num, rest]
-  return MEMO[k] if MEMO.key?(k)
-  unless num
-    return 0 if field.index('#', start) # dangling '#' char
-    # puts "found #{starts}"
-    return 1
-  end
-  ret = valid_locs(field, start, num, rest).sum do |l|
-    # puts "#{num} #{field.dup.tap { _1[l,0] = '>' }}"
-    c2(field, l+num+1, rest[0], rest[1..], starts+[l])
-  end
-  MEMO[k] = ret
-  ret
-end
-
-def c(field, nums, pr=false)
-  MEMO.clear
-  # find each valid location for nums[0]
-  # for each, find each valid location for nums[1]
-  # etc
-  c2(field, 0, nums[0], nums[1..])
-  # valid_locs(field, pos, nums[0], nums[1..]).sum do |l|
-  #   c2(field, l+nums[0]+1, nums[1], nums[2..])
-  # end
 end
 
 def parse(line)
@@ -124,11 +41,11 @@ def parse(line)
 end
 
 def part1(input)
-  input.lines.sum { |l| c(*parse(l)) }
+  input.lines.sum { |l| parse_count(*parse(l)) }
 end
 
 def part2(input)
-  input.each_line.with_index.sum { |l,i| c(*unfold(*parse(l)), false) }
+  input.lines.sum { |l| parse_count(*unfold(*parse(l))) }
 end
 
 ###
