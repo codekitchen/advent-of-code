@@ -4,6 +4,13 @@
 ###
 require_relative './../utils'
 
+# I like this other solution for part2.
+# https://github.com/oliver-ni/advent-of-code/blob/master/py/2023/day13.py
+# My solution modifies the string in each position, finds all reflections,
+# and looks for a reflection that isn't the same as the original.
+# This other solution just looks for almost-reflections that differ in exactly
+# one position, instead. Much more elegant.
+
 def parse(input)
   input.split("\n\n").map { |puz| puz.lines.map { _1.chomp.chars } }
 end
