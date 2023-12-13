@@ -16,41 +16,42 @@ def parse(input)
 end
 def ppuz(puz) = puz.map(&:join).join("\n")
 
-def lines_of_reflection(puz)
+def lines_of_reflection(puz, diff=0)
   (0..puz.size-2).select do |i|
     left = puz[..i]
     right = puz[i+1..]
     sz = [left.size, right.size].min
-    left.reverse[...sz] == right[...sz]
+    left.reverse[...sz].flatten.zip(right[...sz].flatten).count { |a,b| a != b } == diff
   end
 end
 
-def score(puz)
-  lines_of_reflection(puz).map { 100*(_1+1) } +
-  lines_of_reflection(puz.transpose).map { _1+1 }
+def score(puz, diff=0)
+  lines_of_reflection(puz, diff).map { 100*(_1+1) } +
+  lines_of_reflection(puz.transpose, diff).map { _1+1 }
 end
 
 def part1(input)
   parse(input).sum { |puz| score(puz).first }
 end
 
-def score2(puz)
-  scores = score(puz)
-  (0...puz.size).each do |y|
-    (0...puz[0].size).each do |x|
-      chr = puz[y][x]
-      puz[y][x] = chr == '#' ? '.' : '#'
-      s2 = score(puz)
-      news = s2 - scores
-      return news[0] if news[0]
-      puz[y][x] = chr
-    end
-  end
-  puts "no solution found for\n#{s1}\n#{puz.map(&:join).join("\n")}"
-end
+# def score2(puz)
+#   scores = score(puz)
+#   (0...puz.size).each do |y|
+#     (0...puz[0].size).each do |x|
+#       chr = puz[y][x]
+#       puz[y][x] = chr == '#' ? '.' : '#'
+#       s2 = score(puz)
+#       news = s2 - scores
+#       return news[0] if news[0]
+#       puz[y][x] = chr
+#     end
+#   end
+#   puts "no solution found for\n#{s1}\n#{puz.map(&:join).join("\n")}"
+# end
 
 def part2(input)
-  parse(input).sum { |puz| score2 puz }
+  # parse(input).sum { |puz| score2 puz }
+  parse(input).sum { |puz| score(puz, 1).first }
 end
 
 ###
