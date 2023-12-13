@@ -1,0 +1,7 @@
+#!/bin/bash
+
+year=$(date "+%Y")
+mkdir -p ./$year
+cp -r ./template ./$year/${1:?specify day}
+mv $year/$1/template.rb $year/$1/$1.rb
+code -r $year/$1/$1.rb
