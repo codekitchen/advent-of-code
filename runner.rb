@@ -3,10 +3,10 @@ require 'pathname'
 script = Pathname.new($0)
 day = script.basename(".rb")
 
-inputs = (script.dirname.glob("*.txt"))
-def inputs_for(inputs, partname)
-  inputs.filter_map do |f|
-    name = f.basename('.txt').to_s
+INPUTS = script.dirname.glob("*.txt").to_h { [_1.basename('.txt').to_s,_1] }
+
+def inputs_for(partname)
+  INPUTS.filter_map do |name,f|
     if f.empty?
       warn "skipping empty input file #{f.basename}"
       next
@@ -17,9 +17,10 @@ def inputs_for(inputs, partname)
   end
 end
 
-END {
+at_exit do
+  next if $!
   private_methods.grep(/part\d+/).sort.each do |part|
-    files = inputs_for(inputs, part)
+    files = inputs_for(part)
     if files.empty?
       warn "no files found for #{part}"
       next
@@ -28,4 +29,4 @@ END {
       puts "#{part} #{name}", send(part, file).inspect
     end
   end
-}
+end

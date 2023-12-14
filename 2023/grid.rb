@@ -19,6 +19,10 @@ class Grid
     new(input.first.size, input.size, input.join)
   end
 
+  def dup
+    Grid.new width, height, data.dup
+  end
+
   # returns a Rect covering the entire grid
   def all = self[0..,0..]
   def each(&) = all.each(&)
@@ -57,6 +61,11 @@ class Grid
   end
 
   def to_s = all.to_s
+
+  def rotate_cw
+    data = cols.map{_1.get.reverse}.join
+    Grid.new(height, width, data)
+  end
 
   Rect = Data.define(:grid, :xrange, :yrange) do
     include Enumerable
@@ -122,3 +131,5 @@ assert_eq Grid.new(3,3,'123456789').rows.map(&:get), [%w[1 2 3], %w[4 5 6], %w[7
 assert_eq Grid.new(3,3,'123456789').cols.map(&:get), [%w[1 4 7], %w[2 5 8], %w[3 6 9]]
 assert_eq Grid.new(4,4,'0123456789ABCDEF')[1..2,1..2].rows.map(&:get), [%w[5 6], %w[9 A]]
 assert_eq Grid.new(4,4,'0123456789ABCDEF')[1..2,1..2].cols.map(&:get), [%w[5 9], %w[6 A]]
+
+assert_eq Grid.new(3,4,'100010001000').rotate_cw.data, '000100100100'
