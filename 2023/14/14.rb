@@ -6,23 +6,22 @@ require_relative '../grid'
 def roll g
   # rolls north, rotate grid to roll other directions
   g.cols.each do |col|
-    stop = nil
-    col.each do |pos|
-      stop ||= pos
-      case pos.get
+    stop = 0
+    col.each_with_index do |val,y|
+      case val
       when ?#
-        stop = pos.d
+        stop = y+1
       when ?O
-        pos.set ?.
-        stop.set ?O
-        stop = stop.d
+        col[y] = ?.
+        col[stop] = ?O
+        stop += 1
       end
     end
   end
 end
 
 def score(g)
-  g.sum { |pos| pos.get == ?O ? pos.grid.height - pos.y : 0 }
+  g.rows.each_with_index.sum { |r,y| r.count(?O) * (g.height-y) }
 end
 
 def part1(input)

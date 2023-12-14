@@ -18,7 +18,7 @@ def inputs_for(partname)
 end
 
 at_exit do
-  next if $!
+  next if $! # skip runs if an exception was thrown before here
   private_methods.grep(/part\d+/).sort.each do |part|
     files = inputs_for(part)
     if files.empty?

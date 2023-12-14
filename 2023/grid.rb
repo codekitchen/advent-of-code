@@ -1,3 +1,4 @@
+#!/usr/bin/env ruby
 require_relative '../utils'
 
 class Grid
@@ -25,6 +26,7 @@ class Grid
 
   # returns a Rect covering the entire grid
   def all = self[0..,0..]
+  def cells = all.cells
   def each(&) = all.each(&)
   def rows(&) = all.rows(&)
   def cols(&) = all.cols(&)
@@ -63,7 +65,7 @@ class Grid
   def to_s = all.to_s
 
   def rotate_cw
-    data = cols.map{_1.get.reverse}.join
+    data = cols.map{_1.to_a.reverse}.join
     Grid.new(height, width, data)
   end
 
@@ -72,7 +74,35 @@ class Grid
 
     def each
       return to_enum(__method__) unless block_given?
-      yrange.each { |y| xrange.each { |x| yield grid.at(x, y) } }
+      width=grid.width
+      yrange.each { |y| xrange.each { |x| yield grid.data[x+y*width] } }
+    end
+
+    def [](*)
+      grid[*resolve_pos(*)]
+    end
+    def []=(*args)
+      val = args.pop
+      grid.at(*resolve_pos(*args)).set(val)
+    end
+
+    def resolve_pos(*args)
+      case args
+      in [d1] if xrange.size == 1
+        x = xrange.begin
+        y = yrange.begin+d1
+      in [d1] if yrange.size == 1
+        x = xrange.begin+d1
+        y = yrange.begin
+      else
+        raise "Ambiguous indexing for #{self}: #{args.inspect}"
+      end
+      [x,y]
+    end
+
+    def cells
+      return to_enum(__method__) unless block_given?
+      yrange.each { |y| xrange.each { |x| yield grid.at(x,y) } }
     end
 
     def rows
@@ -83,16 +113,12 @@ class Grid
       xrange.map { |x| grid[x,yrange] }
     end
 
-    def get
-      map(&:get)
-    end
-
     def to_s
       lasty = nil
-      map { |c|
+      map { |v,c|
         nl=lasty&&lasty!=c.y&&"\n"
         lasty = c.y
-        "#{nl||''}#{c.get || '⌀'}"
+        "#{nl||''}#{v || '⌀'}"
       }.join
     end
   end
@@ -126,10 +152,13 @@ class Grid
   end
 end
 
-assert_eq Grid.new(3,3,'123456789').map(&:get), '123456789'.split(//)
-assert_eq Grid.new(3,3,'123456789').rows.map(&:get), [%w[1 2 3], %w[4 5 6], %w[7 8 9]]
-assert_eq Grid.new(3,3,'123456789').cols.map(&:get), [%w[1 4 7], %w[2 5 8], %w[3 6 9]]
-assert_eq Grid.new(4,4,'0123456789ABCDEF')[1..2,1..2].rows.map(&:get), [%w[5 6], %w[9 A]]
-assert_eq Grid.new(4,4,'0123456789ABCDEF')[1..2,1..2].cols.map(&:get), [%w[5 9], %w[6 A]]
+if __FILE__ == $0
+  puts "running Grid tests"
+  assert_eq Grid.new(3,3,'123456789').to_a, '123456789'.split(//)
+  assert_eq Grid.new(3,3,'123456789').rows.map(&:to_a), [%w[1 2 3], %w[4 5 6], %w[7 8 9]]
+  assert_eq Grid.new(3,3,'123456789').cols.map(&:to_a), [%w[1 4 7], %w[2 5 8], %w[3 6 9]]
+  assert_eq Grid.new(4,4,'0123456789ABCDEF')[1..2,1..2].rows.map(&:to_a), [%w[5 6], %w[9 A]]
+  assert_eq Grid.new(4,4,'0123456789ABCDEF')[1..2,1..2].cols.map(&:to_a), [%w[5 9], %w[6 A]]
 
-assert_eq Grid.new(3,4,'100010001000').rotate_cw.data, '000100100100'
+  assert_eq Grid.new(3,4,'100010001000').rotate_cw.data, '000100100100'
+end
