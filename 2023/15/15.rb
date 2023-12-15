@@ -17,20 +17,14 @@ end
 
 def part2(input)
   steps = input.read.split(",")
-  boxes = Hash.new { |h,k| h[k] = [] }
+  # relies on hash ordering
+  boxes = Hash.new { |h,k| h[k] = {} }
   steps.each do |step|
     label, op, lens = parse_step step
-    box = boxes[hash label]
-    l = box.find { |old,| old == label }
-    case op
-    when ?-
-      box.delete(l) if l
-    when ?=
-      if l
-        l[1] = lens
-      else
-        box << [label, lens]
-      end
+    if op == ?-
+      boxes[hash label].delete label
+    else
+      boxes[hash label][label] = lens
     end
   end
   score boxes
