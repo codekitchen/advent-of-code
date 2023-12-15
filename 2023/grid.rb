@@ -4,15 +4,29 @@ require_relative '../utils'
 class Grid
   include Enumerable
 
-  attr_reader :width, :height, :data
+  attr_reader :xrange, :yrange
 
-  def initialize(width, height, data=nil, seed: nil)
-    @width = width
-    @height = height
-    n = width*height
-    raise("bad input length: #{data.length}") if data && data.length != n
-    data = seed*n if seed
-    @data = data || Array.new(n)
+  # args for new Grid: width, height, raw_data
+  # args for view on existing Grid: xrange, yrange, grid_data
+  def initialize(w, h, data=nil, seed: nil)
+    if Range === w && Range === h && GridData === data
+      @xrange = w
+      @yrange = h
+      @data = data
+      raise "bad range: #{@xrange}" if @xrange.begin < 0 || @xrange.max >= @data.width
+      raise "bad range: #{@yrange}" if @yrange.begin < 0 || @yrange.max >= @data.height
+    elsif Integer === w && Integer === h
+      @xrange = 0...w
+      @yrange = 0...h
+      @data = GridData.new(width: w, height: h, data: data, seed:)
+    else
+      raise "bad Grid construction: #{[w,h,data].inspect}"
+    end
+  end
+
+  def initialize_copy(*)
+    super
+    @data = GridData.new(width: @data.width, height: @data.height, data: @data.data.dup)
   end
 
   def self.from_input(input)
@@ -20,121 +34,142 @@ class Grid
     new(input.first.size, input.size, input.join)
   end
 
-  def dup
-    Grid.new width, height, data.dup
+  def width  = xrange.size
+  def height = yrange.size
+  def hash = [xrange, yrange, @data].hash
+  def ==(o)
+    Grid === o &&
+      xrange == o.xrange &&
+      yrange == o.yrange &&
+      @data == o.instance_variable_get(:@data)
+  end
+  alias :eql? :==
+  def raw_data = @data.data
+
+  def each
+    return to_enum(__method__) unless block_given?
+    @yrange.each { |y| @xrange.each { |x| yield @data.data[x+y*@data.width] } }
   end
 
-  # returns a Rect covering the entire grid
-  def all = self[0..,0..]
-  def cells = all.cells
-  def each(&) = all.each(&)
-  def rows(&) = all.rows(&)
-  def cols(&) = all.cols(&)
-
-  def[](x,y)
-    if Range === x
-      x = Range.new(0, x.end, x.exclude_end?) if x.begin.nil?
-      x = (x.begin...@width) if x.end.nil?
-      y = (y..y) if Integer === y
-    end
-    if Range === y
-      y = Range.new(0, y.end, y.exclude_end?) if y.begin.nil?
-      y = (y.begin...@height) if y.end.nil?
-      x = (x..x) if Integer === x
-    end
+  def [](*)
+    x,y = resolve_pos(*)
     if Integer === x
-      at(x,y)&.get
+      @data.at(x,y)&.get
     else
-      Rect.new(self, x, y)
+      self.class.new(x, y, @data)
     end
   end
-
-  def in_bounds?(x,y)
-    x >= 0 && y >= 0 && x < @width && y < @height
+  def []=(*args)
+    val = args.pop
+    x,y = resolve_pos(*args)
+    if Integer === x && Integer === y
+      @data.at(x,y).set(val)
+    else
+      raise "cannot Grid[range,range]=val but how nice would that be"
+    end
   end
-
   def at(x,y)
-    return nil unless in_bounds?(x,y)
-    Cell.new(self, x, y, x+y*@width)
+    @data.at(*resolve_pos(x,y))
   end
 
-  def inspect
-    "#<Grid #{width}x#{height}>"
+  def resolve_pos(*args)
+    case args
+    in [Range=>x,y]
+      x = Range.new(xrange.begin, x.end, x.exclude_end?) if x.begin.nil?
+      x = Range.new(x.begin, xrange.end, xrange.exclude_end?) if x.end.nil?
+      y = (y..y) if Integer === y
+    in [x,Range=>y]
+      y = Range.new(yrange.begin, y.end, y.exclude_end?) if y.begin.nil?
+      y = Range.new(y.begin, yrange.end, yrange.exclude_end?) if y.end.nil?
+      x = (x..x) if Integer === x
+    in [Integer=>x, Integer=>y]
+      x += xrange.begin
+      y += yrange.begin
+    in [Integer=>d1] if xrange.size == 1
+      x = xrange.begin
+      y = yrange.begin+d1
+    in [Integer=>d1] if yrange.size == 1
+      x = xrange.begin+d1
+      y = yrange.begin
+    else
+      raise "Ambiguous indexing for #{self.inspect}: #{args.inspect}"
+    end
+    [x,y]
   end
 
-  def to_s = all.to_s
+  def cells
+    return to_enum(__method__) unless block_given?
+    @yrange.each { |y| @xrange.each { |x| yield @data.at(x,y) } }
+  end
+
+  def each_row
+    return to_enum(__method__) unless block_given?
+    yrange.each { |y| yield self[xrange,y] }
+  end
+  def rows = each_row.to_a
+
+  def each_col
+    return to_enum(__method__) unless block_given?
+    xrange.map { |x| yield self[x,yrange] }
+  end
+  def cols = each_col.to_a
 
   def rotate_cw
     data = cols.map{_1.to_a.reverse}.join
-    Grid.new(height, width, data)
+    self.class.new(height, width, data)
   end
 
-  Rect = Data.define(:grid, :xrange, :yrange) do
-    include Enumerable
+  def to_s
+    lasty = nil
+    cells.map { |c|
+      nl=lasty&&lasty!=c.y&&"\n"
+      lasty = c.y
+      "#{nl||''}#{c.get || '⌀'}"
+    }.join
+  end
 
-    def each
-      return to_enum(__method__) unless block_given?
-      width=grid.width
-      yrange.each { |y| xrange.each { |x| yield grid.data[x+y*width] } }
+  class GridData
+    attr_reader :width, :height, :data
+
+    def initialize(width:, height:, data: nil, seed: nil)
+      @width = width
+      @height = height
+      n = width*height
+      raise("bad input length: #{data.length}") if data && data.length != n
+      @data = data || Array.new(n, seed)
     end
 
-    def [](*)
-      grid[*resolve_pos(*)]
-    end
-    def []=(*args)
-      val = args.pop
-      grid.at(*resolve_pos(*args)).set(val)
+    def in_bounds?(x,y)
+      x >= 0 && y >= 0 && x < width && y < height
     end
 
-    def resolve_pos(*args)
-      case args
-      in [d1] if xrange.size == 1
-        x = xrange.begin
-        y = yrange.begin+d1
-      in [d1] if yrange.size == 1
-        x = xrange.begin+d1
-        y = yrange.begin
-      else
-        raise "Ambiguous indexing for #{self}: #{args.inspect}"
-      end
-      [x,y]
+    def at(x,y)
+      return nil unless in_bounds?(x,y)
+      Cell.new(self, x, y, x+y*width)
     end
 
-    def cells
-      return to_enum(__method__) unless block_given?
-      yrange.each { |y| xrange.each { |x| yield grid.at(x,y) } }
+    def inspect
+      "#<GridData #{width}x#{height}>"
     end
 
-    def rows
-      yrange.map { |y| grid[xrange,y] }
-    end
-
-    def cols
-      xrange.map { |x| grid[x,yrange] }
-    end
-
-    def to_s
-      lasty = nil
-      map { |v,c|
-        nl=lasty&&lasty!=c.y&&"\n"
-        lasty = c.y
-        "#{nl||''}#{v || '⌀'}"
-      }.join
+    def hash = [width, height, data].hash
+    def ==(o)
+      width == o.width && height == o.height && data == o.data
     end
   end
 
-  Cell = Data.define(:grid, :x, :y, :pos) do
+  Cell = Data.define(:grid_data, :x, :y, :pos) do
     def get
-      grid.data[pos]
+      grid_data.data[pos]
     end
 
     def set(val)
-      grid.data[pos] = val
+      grid_data.data[pos] = val
       self
     end
 
     def relative(x2, y2)
-      grid.at(x+x2, y+y2)
+      grid_data.at(x+x2, y+y2)
     end
 
     def l = relative(-1,  0)
@@ -145,20 +180,29 @@ class Grid
     def neighbors
       return to_enum(__method__) unless block_given?
       yield l unless x == 0
-      yield r unless x+1 == grid.width
+      yield r unless x+1 == grid_data.width
       yield u unless y == 0
-      yield d unless y+1 == grid.height
+      yield d unless y+1 == grid_data.height
     end
+
+    def hash = [x, y, pos, grid_data.object_id].hash
   end
 end
 
 if __FILE__ == $0
   puts "running Grid tests"
-  assert_eq Grid.new(3,3,'123456789').to_a, '123456789'.split(//)
-  assert_eq Grid.new(3,3,'123456789').rows.map(&:to_a), [%w[1 2 3], %w[4 5 6], %w[7 8 9]]
-  assert_eq Grid.new(3,3,'123456789').cols.map(&:to_a), [%w[1 4 7], %w[2 5 8], %w[3 6 9]]
+  g = Grid.new(3,3,'123456789')
+  assert_eq g.to_a, '123456789'.split(//)
+  assert_eq g.rows.map(&:to_a), [%w[1 2 3], %w[4 5 6], %w[7 8 9]]
+  assert_eq g.cols.map(&:to_a), [%w[1 4 7], %w[2 5 8], %w[3 6 9]]
   assert_eq Grid.new(4,4,'0123456789ABCDEF')[1..2,1..2].rows.map(&:to_a), [%w[5 6], %w[9 A]]
   assert_eq Grid.new(4,4,'0123456789ABCDEF')[1..2,1..2].cols.map(&:to_a), [%w[5 9], %w[6 A]]
 
-  assert_eq Grid.new(3,4,'100010001000').rotate_cw.data, '000100100100'
+  assert_eq Grid.new(3,4,'100010001000').rotate_cw.raw_data, '000100100100'
+
+  assert_neq g.raw_data.object_id, g.dup.raw_data.object_id
+  copy = g.dup
+  copy[1,1] = 'A'
+  assert_eq g.raw_data, '123456789'
+  assert_eq copy.raw_data, '1234A6789'
 end

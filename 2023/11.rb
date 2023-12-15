@@ -8,10 +8,10 @@ require_relative 'grid'
 def part1(input, factor=2)
   factor-=1
   g = Grid.from_input(input)
-  eys = g.rows.filter_map { |s| s.get.any?('#') ? nil : s.first.y }.to_set
-  exs = g.cols.filter_map { |s| s.get.any?('#') ? nil : s.first.x }.to_set
+  eys = g.each_row.with_index.filter_map { |s,y| s.any?('#') ? nil : y }.to_set
+  exs = g.each_col.with_index.filter_map { |s,x| s.any?('#') ? nil : x }.to_set
 
-  gals = g.select { _1.get == '#' }
+  gals = g.cells.select { _1.get == '#' }
   gals.combination(2).sum do
     ys = Range.new(*[_1.y, _2.y].sort,true)
     xs = Range.new(*[_1.x, _2.x].sort,true)

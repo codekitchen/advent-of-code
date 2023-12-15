@@ -5,7 +5,7 @@ require_relative '../grid'
 
 def roll g
   # rolls north, rotate grid to roll other directions
-  g.cols.each do |col|
+  g.each_col do |col|
     stop = 0
     col.each_with_index do |val,y|
       case val
@@ -42,12 +42,12 @@ def part2(input, cycles=1000000000)
   seen = {}
   i = 0
   while i < cycles
-    prev_i = seen[g.data]
+    prev_i = seen[g]
     if prev_i
       clen = i - prev_i
       i += clen while i+clen < cycles
     end
-    seen[g.data] = i
+    seen[g] = i
     g = cycle g
     i += 1
   end

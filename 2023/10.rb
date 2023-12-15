@@ -21,7 +21,7 @@ end }
 
 def part1(input, start_shape)
   grid = Grid.from_input(input)
-  start = grid.find { _1.get == 'S' }
+  start = grid.cells.find { _1.get == 'S' }
   start.set(start_shape)
 
   distances = {}
@@ -36,7 +36,7 @@ end
 
 def part2(input, start_shape)
   grid = Grid.from_input(input)
-  start = grid.find { _1.get == 'S' }
+  start = grid.cells.find { _1.get == 'S' }
   start.set(start_shape)
 
   distances = {}
@@ -66,23 +66,23 @@ def part2(input, start_shape)
   # of empty space around everything.
   # but expanding x2 I need to flood fill from all empty space on the edges
   q = [
-    grid[0..,0].select {!expanded_loop.include? _1},
-    grid[0..,grid.height-1].select {!expanded_loop.include? _1},
-    grid[0,0..].select {!expanded_loop.include? _1},
-    grid[grid.width-1,0..].select {!expanded_loop.include? _1},
+    grid[0..,0].cells.select {!expanded_loop.include? _1},
+    grid[0..,grid.height-1].cells.select {!expanded_loop.include? _1},
+    grid[0,0..].cells.select {!expanded_loop.include? _1},
+    grid[grid.width-1,0..].cells.select {!expanded_loop.include? _1},
   ].flatten
   until q.empty?
     n = q.shift
     n.set('O')
     q.push(*n.neighbors.reject { expanded_loop.include?(_1) || _1.get == 'O' || q.include?(_1) })
   end
-  old.each { |c| c.set(grid[c.x*2, c.y*2]) }
+  old.cells.each { |c| c.set(grid[c.x*2, c.y*2]) }
   grid = old
-  grid.each do |c|
+  grid.cells.each do |c|
     c.set 'I' if !in_loop.include?(c) && !(c.get == 'O')
   end
   # puts grid
-  grid.count { _1.get == 'I' }
+  grid.count('I')
 end
 
 ###
