@@ -59,11 +59,11 @@ class Grid
       self.class.new(x, y, @data)
     end
   end
-  def []=(*args)
-    val = args.pop
-    x,y = resolve_pos(*args)
+  def []=(x,y,val)
+    # x,y = resolve_pos(*args)
     if Integer === x && Integer === y
-      @data.at(x,y).set(val)
+      # @data.at(x,y).set(val)
+      @data.data[x+y*width] = val
     else
       raise "cannot Grid[range,range]=val but how nice would that be"
     end
@@ -169,7 +169,11 @@ class Grid
     end
 
     def relative(x2, y2)
-      grid_data.at(x+x2, y+y2)
+      # grid_data.at(x+x2, y+y2)
+      x2 += x
+      y2 += y
+      return unless x2>=0 && y2>=0 && x2<grid_data.width && y2<grid_data.height
+      Cell.new(grid_data, x2, y2, x2+y2*grid_data.width)
     end
 
     def l = relative(-1,  0)
@@ -185,7 +189,9 @@ class Grid
       yield d unless y+1 == grid_data.height
     end
 
-    def hash = [x, y, pos, grid_data.object_id].hash
+    def hash = [pos, grid_data.object_id].hash
+    def eql?(o) = [pos,grid_data.object_id] == [o.pos,o.grid_data.object_id]
+    def ==(o) = [pos,grid_data.object_id] == [o.pos,o.grid_data.object_id]
   end
 end
 
