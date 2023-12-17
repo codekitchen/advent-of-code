@@ -29,9 +29,11 @@ class Grid
     @data = GridData.new(width: @data.width, height: @data.height, data: @data.data.dup)
   end
 
-  def self.from_input(input)
+  def self.from_input(input, &mapper)
     input = input.lines.map(&:chomp)
-    new(input.first.size, input.size, input.join)
+    data = input.join
+    data = data.chars.map!(&mapper) if mapper
+    new(input.first.size, input.size, data)
   end
 
   def width  = xrange.size
@@ -188,6 +190,8 @@ class Grid
       yield u unless y == 0
       yield d unless y+1 == grid_data.height
     end
+
+    def inspect = "#<Grid::Cell [#{x},#{y}]>"
 
     def hash = [pos, grid_data.object_id].hash
     def eql?(o) = [pos,grid_data.object_id] == [o.pos,o.grid_data.object_id]

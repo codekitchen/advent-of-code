@@ -14,7 +14,7 @@ def inputs_for(partname)
     if (name !~ /part/ || name =~ /#{partname}/)
       [name.gsub(/#{partname}_?/, ''), f]
     end
-  end
+  end.sort_by { |name,f| [name =~ /full/ ? 1 : 0, name] }
 end
 
 at_exit do
