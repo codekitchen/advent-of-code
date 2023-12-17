@@ -3,6 +3,14 @@ require_relative '../../runner'
 require_relative '../../utils'
 require_relative '../grid'
 
+# I implemented this using Bellman-Ford's pathfinding algorithm which supports negative
+# edge weights. This turned out to not be necessary since I ended up treating each
+# [pos,dir,steps] tuple as a separate node in the graph anyway, and didn't end up trying to
+# map it to a problem with negative edge weights.
+# I'm sure it'd run some degree faster using Djikstra's since the pqueue would help us
+# find the goal faster, or A* since a good heuristic should be possible,
+# but part2 completes in 25s so it's fine as is.
+
 P = Struct.new(:pos, :dir, :steps) do
   def next
     moves = case dir
