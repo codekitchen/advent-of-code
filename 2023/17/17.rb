@@ -4,14 +4,6 @@ require_relative '../../utils'
 require_relative '../grid'
 require_relative '../../pathfinding'
 
-# I implemented this using Bellman-Ford's pathfinding algorithm which supports negative
-# edge weights. This turned out to not be necessary since I ended up treating each
-# [pos,dir,steps] tuple as a separate node in the graph anyway, and didn't end up trying to
-# map it to a problem with negative edge weights.
-# I'm sure it'd run some degree faster using Dijkstra's since the pqueue would help us
-# find the goal faster, or A* since a good heuristic should be possible,
-# but part2 completes in 25s so it's fine as is.
-
 P = Struct.new(:pos, :dir, :steps) do
   def next
     moves = case dir
@@ -45,7 +37,7 @@ def part1(input)
 
   neighbors = :next.to_proc
   solved = ->p { p.pos == target }
-  costs = pathfind(starts:, neighbors:, solved:)
+  pathfind(starts:, neighbors:, solved:) => { costs: }
   costs.select { |p,| p.pos == target }.values.min
 end
 
@@ -58,6 +50,6 @@ def part2(input)
   # ULTRA CRUCIBLE RULES: don't allow a solution if steps < 4
   neighbors = ->p{ p.next2.reject { |p,| p.pos == target && p.steps < 4 } }
   solved = ->p { p.pos == target }
-  costs = pathfind(starts:, neighbors:, solved:)
+  pathfind(starts:, neighbors:, solved:) => { costs: }
   costs.select { |p,| p.pos == target }.values.min
 end

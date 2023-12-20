@@ -46,25 +46,29 @@ def pathfind(starts:, neighbors:, solved: nil, heuristic: nil, negatives: false)
   starts = Array(starts)
   # [score+heuristic, score, node]
   q = PQueue.new(starts.map { [0, 0, _1] })
-  opt = Hash.new(Float::INFINITY)
-  starts.each { opt[_1] = 0 }
+  costs = Hash.new(Float::INFINITY)
+  starts.each { costs[_1] = 0 }
   qcounts = Hash.new(0)
+  prev = {}
 
-  until q.empty?
-    _, cost, u = q.shift # shift gives lowest cost, pop gives highest cost
-    if negatives
-      qc = qcounts[u] += 1
-      raise 'negative cycle detected' if qc > opt.size
-    end
-    neighbors.(u).each do |v,v_cost|
-      new_cost = (cost||opt[u]) + v_cost
-      if negatives ? new_cost < opt[v] : opt[v] == Float::INFINITY
-        opt[v] = new_cost
-        return opt if solved&.(v)
-        h = heuristic&.(v) || 0
-        q << (negatives ? [h+new_cost, nil, v] : [h+new_cost, new_cost, v])
+  catch :done do
+    until q.empty?
+      _, cost, u = q.shift # shift gives lowest cost, pop gives highest cost
+      if negatives
+        qc = qcounts[u] += 1
+        raise 'negative cycle detected' if qc > costs.size
+      end
+      neighbors.(u).each do |v,v_cost|
+        new_cost = (cost||costs[u]) + v_cost
+        if negatives ? new_cost < costs[v] : costs[v] == Float::INFINITY
+          costs[v] = new_cost
+          prev[v] = u
+          throw :done if solved&.(v)
+          h = heuristic&.(v) || 0
+          q << (negatives ? [h+new_cost, nil, v] : [h+new_cost, new_cost, v])
+        end
       end
     end
   end
-  return opt
+  return { costs:, prev: }
 end
