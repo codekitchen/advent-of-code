@@ -1,18 +1,23 @@
 require 'ruby2d'
 require 'cairo'
 
-def render_viz(objs)
+def render_viz(objs,cuts:[],preview:true)
   width, height = 1024, 768
   surface = Cairo::ImageSurface.new(width, height)
   ctx = Cairo::Context.new(surface)
-  ctx.select_font_face( "Cascadia Mono")
+  ctx.select_font_face("Menlo")
   objs = objs.map { |o| o.group_by { _1[:fr] }.map { |_,g| g.inject(:merge) } }
-  objs = objs.sort_by { _1.first[:fr] }
-  frames = objs.map { _1.last[:fr] }.max + 1
+  objs = objs.sort_by.with_index { [_1.first[:fr], _2] }
+  frames = objs.map { _1.last[:fr] }.max
+  puts "total frames #{frames}"
   activeidx = 0
   active = []
   frame = 0
   anim_step = lambda do
+    while cuts.any?{|c|c.include?(frame)}
+      frame+=1
+      return if frame >= frames
+    end
     while activeidx < objs.length && objs[activeidx].first[:fr] <= frame
       active << objs[activeidx]
       activeidx += 1
@@ -40,6 +45,7 @@ def render_viz(objs)
         ctx.translate (x1+x2)*-0.5, (y1+y2)*-0.5
       when :box
         ctx.new_path
+        props = {rc:0}.merge(props)
         props => { x1:, y1:, x2:, y2:, rc:, rf:, gf:, bf:, af: }
         ctx.arc x2-rc, y2-rc, rc, 0.0, 1.5707963268
         ctx.arc x1+rc, y2-rc, rc, 1.5707963268, 3.14159265359
@@ -48,23 +54,24 @@ def render_viz(objs)
         ctx.close_path
         ctx.set_source_rgba rf, gf, bf, af
         ctx.fill_preserve
+        if props[:lw]
+          props => {lw:,rs:,gs:,bs:,as:}
+          ctx.set_line_width lw
+          ctx.set_source_rgba rs,gs,bs,as
+          ctx.stroke
+        end
         if props[:tx]
-          props => { tx:, fs: }
-          pa = 3
-          xj = yj = 0
+          props = {pa:0,xj:0,yj:0}.merge(props)
+          props => { tx:, fs:, rt:, gt:, bt:, at:, pa:, xj:, yj: }
           ctx.set_font_size fs
           fnext = ctx.font_extents
           txext = ctx.text_extents tx
-          ctx.move_to x1+pa+(x2-x1-2*pa-txext.y_advance)*xj, y1+pa+fnext.ascent+(y2-y1-2*pa-fnext.ascent-fnext.descent)*yj
-          x = x1+(x2-x1)*0.5-txext.x_advance/2
-          y = y1+(y2-y1)*0.8
-          ctx.move_to x, y
-          ctx.set_source_rgba 1, 1, 1, 1
+          ctx.move_to x1+pa+(x2-x1-2*pa-txext.x_advance)*xj, y1+pa+fnext.ascent+(y2-y1-2*pa-fnext.ascent-fnext.descent)*yj
+          ctx.set_source_rgba rt, gt, bt, at
           ctx.show_text tx
         end
-        # ctx.set_line_width 2
-        # ctx.set_source_rgb 0, 0, 0
-        # ctx.stroke
+      else
+        raise "unknown object type #{obj.inspect}"
       end
     end
     fname="viz/frame-%04d.png" % [frame]
@@ -74,17 +81,24 @@ def render_viz(objs)
     fname
   end
 
-  set(width:, height:)
-  img = nil
-  update do
-    if frame >= frames
-      close
-      return
+  if preview
+    set(width:, height:)
+    img = nil
+    update do
+      fname = anim_step.()
+      if !fname
+        close
+        return
+      end
+      img&.remove
+      img = Image.new(fname, width:, height:)
+      sleep 1.0 / 60
     end
-    fname = anim_step.()
-    img&.remove
-    img = Image.new(fname, width:, height:)
-    sleep 1.0 / 60
+    show
+  else
+    loop do
+      fname = anim_step.()
+      break if !fname
+    end
   end
-  show
 end

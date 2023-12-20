@@ -47,13 +47,13 @@ Machine = Struct.new(:modules) do
 
   def press(needed_sigs=[])
     @seen ||= Hash.new { |h,k| h[k] = Set.new }
-    low = high = 0
-    q = [['button', 'broadcaster', 0, 0]]
+    sigcounts = [0,0]
     sigseen = []
+    q = [['button', 'broadcaster', 0, 0]]
     until q.empty?
       src, nm, sig = q.shift
       puts "#{src} -#{sig == 0 ? 'low' : 'high'}-> #{nm}" if $output
-      sig == 0 ? low+=1 : high+=1
+      sigcounts[sig]+=1
       mod = modules[nm]
       idx = mod.inputs.index(src)
       sig = mod.process sig, idx
@@ -62,29 +62,29 @@ Machine = Struct.new(:modules) do
       q += mod.outputs.map { [nm, _1, sig] }
     end
     puts if $output
-    [low, high, sigseen]
+    [sigcounts, sigseen]
   end
 end
 
 def part1(input)
   m = Machine.new.parse(input.readlines)
-  low = high = 0
-  1000.times do |i|
-    l,h = m.press
-    low+=l; high+=h
+  counts = 1000.times.map do
+    c,_ = m.press
+    c
   end
-  low * high
+  counts.sum(&:first) * counts.sum(&:last)
 end
 
 def part2(input)
   m = Machine.new.parse(input.readlines)
   rx = m.modules['rx']
   return "rx not defined" unless rx
-  deps = m.modules['zh'].inputs
+  return "need rx to have one input" unless rx.inputs.size == 1
+  deps = m.modules[rx.inputs.first].inputs
   found = {}
 
   (1..).each do |i|
-    _,_,seen = m.press(deps)
+    _,seen = m.press(deps)
     seen.each { |nm| found[nm] ||= i }
     break if found.size == deps.size
   end
