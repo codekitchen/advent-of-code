@@ -28,11 +28,9 @@ end
 TyMap = { nil => Mod, ?% => FlipFlop, ?& => Conjunction }
 
 Machine = Struct.new(:modules) do
-  def parse(lines)
-    self.modules = lines.to_h do |line|
-      l,r = line.strip.split(' -> ')
-      %r{(?<ty>\W)?(?<nm>\w+)} =~ l
-      outputs = r.split(", ")
+  def parse(input)
+    parser = Parse.new '{type:%&?}{name} -> {outputs*}'
+    self.modules = parser.lines(input).to_h do |ty,nm,outputs|
       [nm, TyMap[ty].new(0, outputs)]
     end
     missing = modules.values.flat_map(&:outputs).select {|nm|!modules.key?(nm)}
@@ -67,7 +65,7 @@ Machine = Struct.new(:modules) do
 end
 
 def part1(input)
-  m = Machine.new.parse(input.readlines)
+  m = Machine.new.parse(input)
   counts = 1000.times.map do
     c,_ = m.press
     c
@@ -76,7 +74,7 @@ def part1(input)
 end
 
 def part2(input)
-  m = Machine.new.parse(input.readlines)
+  m = Machine.new.parse(input)
   rx = m.modules['rx']
   return "rx not defined" unless rx
   return "need rx to have one input" unless rx.inputs.size == 1

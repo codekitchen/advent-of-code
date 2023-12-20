@@ -10,19 +10,14 @@ def seqs(ints)
   ints.last + seqs(diffs)
 end
 
+def parse = Parse.new '{ints*}'
+
 def part1_recur(input)
-  input
-    .lines
-    .map { _1.split.map(&:to_i) }
-    .sum { seqs _1 }
+  parse.lines(input).sum { seqs _1 }
 end
 
 def part1(input)
-  input
-    .lines
-    .map { _1.split.map(&:to_i) }
-    .sum do |ints|
-      # seqs = unfold(ints) { |step| step.each_cons(2).map { _2-_1 } unless step.all?(&:zero?) }
+  parse.lines(input).sum do |ints|
       Enumerator.produce(ints) { |step| step.each_cons(2).map { _2-_1 } }
         .take_while { |step| !step.all?(&:zero?) }
         .sum { _1.last }
@@ -30,8 +25,7 @@ def part1(input)
 end
 
 def part2(input)
-  histories = input.lines.map { _1.split.map(&:to_i) }
-  histories.sum do |start|
+  parse.lines(input).sum do |start|
     # reversing means that the subsequent rows will be negated from part1,
     # allowing us to just sum at the end again
     start.reverse!

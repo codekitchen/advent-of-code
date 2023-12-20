@@ -5,6 +5,8 @@ require_relative '../../utils'
 def unfold(row, nums, n=5) = [([row]*n).join('?'), nums.cycle(n).to_a]
 assert_eq unfold('.#', [1], 5), ['.#?.#?.#?.#?.#', [1,1,1,1,1]]
 
+def parse = Parse.new '{str} {nums*}'
+
 def parse_count(str, nums, memo={})
   n = nums[0] || 0
   memo[[str, nums]] ||= case str
@@ -31,16 +33,10 @@ def parse_count(str, nums, memo={})
   end
 end
 
-def parse(line)
-  field, nums = line.split(' ')
-  nums = nums.split(',').map(&:to_i)
-  [field, nums]
-end
-
 def part1(input)
-  input.readlines.sum { |l| parse_count(*parse(l)) }
+  parse.lines(input).sum { |l| parse_count(*l) }
 end
 
 def part2(input)
-  input.readlines.sum { |l| parse_count(*unfold(*parse(l))) }
+  parse.lines(input).sum { |l| parse_count(*unfold(*l)) }
 end

@@ -7,10 +7,8 @@ require_relative './../utils'
 def parser(input)
   steps, locs = input.split("\n\n").map(&:strip)
   steps = steps.chars.cycle
-  # fun with regexp auto-local-vars:
-  # locs = locs.lines.to_h { %r{(?<p>\w+) = \((?<l>\w+), (?<r>\w+)\)} =~ _1; [p, [l,r]] }
-  parser = parse("{loc} = ({l}, {r})")
-  locs = locs.lines.to_h { _1.match(parser) => {loc:, l:, r:}; [loc, [l,r]] }
+  parse = Parse.new("{loc} = ({l}, {r})")
+  locs = locs.lines.to_h { parse.(_1) => {loc:, l:, r:}; [loc, [l,r]] }
   return steps, locs
 end
 

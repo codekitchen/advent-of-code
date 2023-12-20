@@ -18,6 +18,8 @@ DIRS = {
   "R" => P[1,0],
 }
 
+def parse = Parse.new '{dir} {dist} ({color})'
+
 def solve(dirs)
   points = [P[0,0]]
   border = 0
@@ -30,16 +32,15 @@ def solve(dirs)
 end
 
 def part1(input)
-  dirs = input.readlines.map { _1.split }.map { |dir,dist,_| [dir, dist.to_i] }
-  solve(dirs)
+  solve(parse.lines(input))
 end
 
 DIR_N = %w[R D L U]
 
 def part2(input)
-  dirs = input.readlines.map { _1.split.last }.map do |hex|
-    dir = DIR_N[hex[-2].to_i]
-    dist = hex[2,5].to_i(16)
+  dirs = parse.lines(input).map do |_,_,hex|
+    dir = DIR_N[hex[-1].to_i]
+    dist = hex[1,5].to_i(16)
     [dir,dist]
   end
   solve(dirs)

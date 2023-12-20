@@ -3,9 +3,13 @@
 # impl
 ###
 
+require_relative '../utils'
+
+Card = Parse.new 'Card {id}: {wins*} | {nums*}'
+
 def part1(input)
   input.lines.sum do |line|
-    wins, nums = line.split(":").last.split("|").map { _1.split.map(&:to_i) }
+    id, wins, nums = Card.parse(line)
     mine = (nums & wins).length
     mine > 0 ? 2 ** (mine - 1) : 0
   end
@@ -13,7 +17,7 @@ end
 
 def part2(input)
   cards = input.lines.map do |line|
-    wins, nums = line.split(":").last.split("|").map { _1.split.map(&:to_i) }
+    id, wins, nums = Card.parse(line)
     (nums & wins).length # number of wins on this card
   end
   counts = [1] * cards.length

@@ -9,18 +9,17 @@ def part1(input)
   input.read.split(",").sum { hash _1 }
 end
 
-def parse_step(step) = step.match(%r{(\w+)([-=])(\d+)?})[1..]
+def parse = Parse.new '{label}{op:-=}{lens?}', repeat: ','
 
 def score(boxes)
-  boxes.sum { |id,box| box.each_with_index.sum { |(label,lens),idx| (id+1)*(idx+1)*lens.to_i } }
+  boxes.sum { |id,box| box.each_with_index.sum { |(label,lens),idx| (id+1)*(idx+1)*lens } }
 end
 
 def part2(input)
-  steps = input.read.split(",")
+  steps = parse.(input.read)
   # relies on hash ordering
   boxes = Hash.new { |h,k| h[k] = {} }
-  steps.each do |step|
-    label, op, lens = parse_step step
+  steps.each do |label,op,lens|
     if op == ?-
       boxes[hash label].delete label
     else
