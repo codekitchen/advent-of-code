@@ -1,6 +1,8 @@
 require 'pathname'
 require 'optparse'
 
+return if $skip_runner
+
 $viz = false
 script = Pathname.new($0)
 $day = script.basename(".rb")

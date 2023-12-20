@@ -27,6 +27,6 @@ module Enumerable
 end
 
 # produce until nil/false returned
-def unfold(seed)
+def unfold(seed=nil)
   Enumerator.produce(seed) { yield(_1) || raise(StopIteration) }
 end

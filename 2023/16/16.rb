@@ -15,16 +15,22 @@ def count_energized(grid, start=[0,0], start_dir=:r)
   start = grid.at(*start)
   energized = Grid.new(grid.width, grid.height, seed: '.')
   beams_seen = Set.new
+  yield_state = ->{Fiber.yield energized:, grid:}
+  yield_state.()
 
   beams = [[start, start_dir]]
   until beams.empty?
-    beams.shift => [pos,dir] => beam
-    next if beams_seen.include?(beam)
-    beams_seen << beam
+    beams, current = [], beams
+    current.each do |beam|
+      next if beams_seen.include?(beam)
+      beams_seen << beam
 
-    energized[pos.x,pos.y] = '#'
-    moves = [MOVES[pos.get][dir]].flatten
-    moves.each { |mv| nw = pos.send(mv); beams << [nw,mv] if nw }
+      pos, dir = beam
+      energized[pos.x,pos.y] = '#'
+      moves = [MOVES[pos.get][dir]].flatten
+      moves.each { |mv| nw = pos.send(mv); beams << [nw,mv] if nw }
+    end
+    yield_state.()
   end
 
   # puts energized

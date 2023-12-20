@@ -21,17 +21,25 @@ Workflow = Data.define(:tests) do
     [name, Workflow[tests]]
   end
 
-  def process(p) = tests.find_map { |t| t.process(p) }
+  def process(p) = tests.each.with_index { |t,i| if v = t.process(p) then return [v,i] end }
 end
 
 def part1(input)
   insns, parts = input.read.split("\n\n")
   insns = insns.lines.to_h { Workflow.parse(_1) }
   parts = parts.lines.map { Part[**_1.scan(%r{([xmas])=(\d+)}).to_h] }
+  Fiber.yield [insns, parts]
   parts.sum do |p|
     dst = 'in'
-    dst = insns[dst].process(p) while insns.key?(dst)
+    path = []
+    while insns.key?(dst)
+      dst2, i = insns[dst].process(p)
+      path << [dst,i]
+      dst = dst2
+    end
+    path << [dst,0]
     raise "part arrived somewhere else: #{p} -> #{dst}" unless %w[A R].include?(dst)
+    Fiber.yield path
     dst == 'A' ? p.rating : 0
   end
 end
