@@ -74,6 +74,10 @@ class Grid
     @data.at(*resolve_pos(x,y))
   end
 
+  def norm(x,y)
+    [x%width,y%height]
+  end
+
   def resolve_pos(*args)
     case args
     in [Range=>x,y]
@@ -170,10 +174,13 @@ class Grid
       self
     end
 
-    def relative(x2, y2)
-      # grid_data.at(x+x2, y+y2)
+    def relative(x2, y2, wrap=false)
       x2 += x
       y2 += y
+      if wrap
+        x2 %= grid_data.width
+        y2 %= grid_data.height
+      end
       return unless x2>=0 && y2>=0 && x2<grid_data.width && y2<grid_data.height
       Cell.new(grid_data, x2, y2, x2+y2*grid_data.width)
     end
@@ -191,11 +198,24 @@ class Grid
       yield d unless y+1 == grid_data.height
     end
 
+    def neighbors_wrap
+      yield relative(-1,0,true)
+      yield relative(1,0,true)
+      yield relative(0,-1,true)
+      yield relative(0,1,true)
+    end
+
     def inspect = "#<Grid::Cell [#{x},#{y}]>"
 
     def hash = [pos, grid_data.object_id].hash
     def eql?(o) = [pos,grid_data.object_id] == [o.pos,o.grid_data.object_id]
-    def ==(o) = [pos,grid_data.object_id] == [o.pos,o.grid_data.object_id]
+    def ==(o)
+      if o.is_a?(Cell)
+        [pos,grid_data.object_id] == [o.pos,o.grid_data.object_id]
+      else
+        get == o
+      end
+    end
   end
 end
 

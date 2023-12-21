@@ -3,7 +3,7 @@
 # parse("{loc} = ({l}, {r})") returns a regexp to capture those groups
 # parse("{id}: {vals*}") will split vals to an array
 class Parse
-  def initialize(spec, repeat: nil, bracket: '{}', hash: false)
+  def initialize(spec, repeat: nil, hash: false)
     @matchers = {}
     @repeat = repeat
     @hash = hash
