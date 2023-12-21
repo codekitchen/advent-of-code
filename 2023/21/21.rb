@@ -3,7 +3,7 @@ require_relative '../../runner'
 require_relative '../../utils'
 require_relative '../grid'
 
-def _(input)
+def part1(input)
   input = input.readlines
   nsteps = input.shift.to_i
   grid = Grid.from_input input.join
