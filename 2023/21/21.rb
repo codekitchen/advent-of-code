@@ -84,10 +84,12 @@ class TransientCache < Hash
 
 end
 
+# https://www.dev-mind.blog/hashlife/
 class Node
   class << self
     def n(*args)
-      @cache ||= TransientCache.new
+      # @cache ||= TransientCache.new
+      @cache ||= Hash.new
       @cache[args] ||= begin
         # puts "cache miss for #{args}"
         new(*args)
@@ -100,6 +102,7 @@ class Node
     @level = nw.is_a?(Array) ? 2 : nw.is_a?(Integer) ? 1 : nw.level+1
     @count = @level == 1 ? [nw,ne,sw,se].count(1) : [nw,ne,sw,se].sum(&:count)
     @nw, @ne, @sw, @se = nw, ne, sw, se
+    @results = {}
   end
   attr_reader :level, :nw, :ne, :sw, :se, :count
 
@@ -107,8 +110,9 @@ class Node
     @center ||= Node.n(@nw.se, @ne.sw, @sw.ne, @se.nw)
   end
 
-  def result
-    @result ||= if @level == 2
+  def evolve(hyper)
+    do_hyper = hyper >= level
+    @results[hyper] ||= if @level == 2
       Node.n(
         @nw.se == 2 ? 2 : ([@nw.ne,@nw.sw,@ne.sw,@sw.ne].any?(1) ? 1 : 0),
         @ne.sw == 2 ? 2 : ([@ne.nw,@ne.se,@nw.se,@se.nw].any?(1) ? 1 : 0),
@@ -116,37 +120,51 @@ class Node
         @se.nw == 2 ? 2 : ([@sw.ne,@ne.sw,@se.ne,@se.sw].any?(1) ? 1 : 0),
       )
     elsif @level > 2
-      n00 = @nw.result
-      n01 = Node.n(@nw.ne, @ne.nw, @nw.se, @ne.sw).result
-      n02 = @ne.result
-      n10 = Node.n(@nw.sw, @nw.se, @sw.nw, @sw.ne).result
-      n11 = Node.n(@nw.se, @ne.sw, @sw.ne, @se.nw).result
-      n12 = Node.n(@ne.sw, @ne.se, @se.nw, @se.ne).result
-      n20 = @sw.result
-      n21 = Node.n(@sw.ne, @se.nw, @sw.se, @se.sw).result
-      n22 = @se.result
-      # n00 = @nw.centeredSubnode
-      # n01 = centeredHorizontal(@nw, @ne)
-      # n02 = @ne.centeredSubnode
-      # n10 = centeredVertical(@nw, @sw)
-      # n11 = centeredSubSubnode
-      # n12 = centeredVertical(@ne, @se)
-      # n20 = @sw.centeredSubnode
-      # n21 = centeredHorizontal(@sw, @se)
-      # n22 = @se.centeredSubnode
-      Node.n(
-        # Node.n(n00, n01, n10, n11).result,
-        # Node.n(n01, n02, n11, n12).result,
-        # Node.n(n10, n11, n20, n21).result,
-        # Node.n(n11, n12, n21, n22).result,
-        Node.n(n00, n01, n10, n11).center,
-        Node.n(n01, n02, n11, n12).center,
-        Node.n(n10, n11, n20, n21).center,
-        Node.n(n11, n12, n21, n22).center,
-      )
+      n00 = @nw.evolve(hyper)
+      n01 = Node.n(@nw.ne, @ne.nw, @nw.se, @ne.sw).evolve(hyper)
+      n02 = @ne.evolve(hyper)
+      n10 = Node.n(@nw.sw, @nw.se, @sw.nw, @sw.ne).evolve(hyper)
+      n11 = Node.n(@nw.se, @ne.sw, @sw.ne, @se.nw).evolve(hyper)
+      n12 = Node.n(@ne.sw, @ne.se, @se.nw, @se.ne).evolve(hyper)
+      n20 = @sw.evolve(hyper)
+      n21 = Node.n(@sw.ne, @se.nw, @sw.se, @se.sw).evolve(hyper)
+      n22 = @se.evolve(hyper)
+      if do_hyper
+        Node.n(
+          Node.n(n00, n01, n10, n11).evolve(hyper),
+          Node.n(n01, n02, n11, n12).evolve(hyper),
+          Node.n(n10, n11, n20, n21).evolve(hyper),
+          Node.n(n11, n12, n21, n22).evolve(hyper),
+        )
+      else
+        Node.n(
+          Node.n(n00, n01, n10, n11).center,
+          Node.n(n01, n02, n11, n12).center,
+          Node.n(n10, n11, n20, n21).center,
+          Node.n(n11, n12, n21, n22).center,
+        )
+      end
     else
       raise "can't result on level #@level"
     end
+  end
+
+  def step(n=1, explain=false)
+    node = self
+    while n > 0
+      hyper_level = node.level
+      hyper_level -= 1 while hyper_level > 3 && n < 2**(hyper_level-2)
+      if hyper_level > 3
+        puts "running hyper at level #{hyper_level}" if explain
+        node = node.expand.evolve(hyper_level)
+        n -= 2**(hyper_level-2)
+        puts "n is now #{n}" if explain
+      else
+        puts "remainder #{n} running slowly" if explain
+        n.times { node = node.expand.evolve(0); n -=1 }
+      end
+    end
+    node
   end
 
   def to_a
@@ -196,6 +214,26 @@ class Node
     showsub(0, 0, step)
     res.join("\n")
   end
+
+  def self.empty(n=1)
+    return Node.n(0,0,0,0) if n == 1
+    e = empty(n-1)
+    Node.n(e,e,e,e)
+  end
+
+  def expand(n=1)
+    res = self
+    n.times do
+      e = res.level == 1 ? 0 : Node.empty(res.level-1)
+      res = Node.n(
+        Node.n(e, e, e, res.nw),
+        Node.n(e, e, res.ne, e),
+        Node.n(e, res.sw, e, e),
+        Node.n(res.se, e, e, e),
+      )
+    end
+    res
+  end
 end
 # L1Node = Array
 # L0Node = 0,1,2
@@ -204,9 +242,9 @@ end
 # ....
 # ....
 n = Node.n(Node.n(0,0,0,1),Node.n(0,0,0,0),Node.n(0,0,0,0),Node.n(0,0,0,0),)
-assert_eq n.result.to_a, [0,1,1,0]
+assert_eq n.step.center.to_a, [0,1,1,0]
 n = Node.n(Node.n(0,0,0,0),Node.n(1,0,0,0),Node.n(0,0,0,0),Node.n(0,0,0,0),)
-assert_eq n.result.to_a, [0,1,0,0]
+assert_eq n.step.center.to_a, [0,1,0,0]
 
 # .O.O
 # ..O.
@@ -215,23 +253,7 @@ assert_eq n.result.to_a, [0,1,0,0]
 empty = Node.n(Node.n(0,0,0,0),Node.n(0,0,0,0),Node.n(0,0,0,0),Node.n(0,0,0,0))
 ne = Node.n(Node.n(0,0,1,0),Node.n(0,0,0,0),Node.n(0,0,0,0),Node.n(0,0,0,0))
 n = Node.n(empty,ne,empty,empty)
-# assert_eq n.result.ne.to_a, [0,1,1,0]
-
-def empty(n=1)
-  return Node.n(0,0,0,0) if n == 1
-  e = empty(n-1)
-  Node.n(e,e,e,e)
-end
-
-def expand(n)
-  e = n.level == 1 ? 0 : empty(n.level-1)
-  Node.n(
-    Node.n(e, e, e, n.nw),
-    Node.n(e, e, n.ne, e),
-    Node.n(e, n.sw, e, e),
-    Node.n(n.se, e, e, e),
-  )
-end
+# assert_eq n.step.ne.to_a, [0,1,1,0]
 
 def show_helper(n, step)
   return n.show(0) if n == 0
@@ -240,41 +262,47 @@ def show_helper(n, step)
   n.show(step)
 end
 
+require 'ruby-progressbar'
+using ProgressBar::Refinements::Enumerator
+
 def part2_conway(input)
-  n = expand(expand(Node.n(0,0,1,0)))
-  puts "#{n.level} (#{n.count})"
-  puts n.show
+  step = 0
+  n = Node.n(0,0,1,0).expand(3)
+  # bk = n = n.expand(10)
+  # csteps = 1000
+  # csteps.times { n = n.step }
+  # bk = bk.step(csteps, false)
+  # puts "#{n.level}@1x#{csteps}    = #{n.count}"
+  # puts "#{bk.level}@~x#{csteps}    = #{bk.count}"
+  # puts
+  # puts n.show
+  # puts
+  # puts bk.show
+  # exit
+  # ns = 8
+  # n = n.step(ns)
+  # step += ns
+  # puts "#{n.level}@#{step} (#{n.count})"
+  # puts n.show
+  # exit
+  # 65.times {
+  #   puts "#{n.level}@#{step} (#{n.count})"
+  #   puts n.show
+  #   puts
+  #   n = n.step; step+=1
+  # }
+
+  22.times { n = n.expand }
+  # correct answer 627960775905777
+  # interim answer 702322399865956
+  # 26501365.times.with_progressbar(format:"%a %e %P% Processed: %c from %C") { |i| n = n.step }
+  # bk = n
+  # 1000.times { n = n.step }
+  # puts "@1000s1 = #{n.count}"
+  # puts "@1000s1000 = #{bk.step(1000).count}"
+
+  # puts "result will be at step #{2**(n.level-2)}"
+  n = n.step(26501365)
   puts
-
-  n = expand(n).result
   puts "#{n.level} (#{n.count})"
-  puts n.show
-
-  n = expand(n).result
-  puts "#{n.level} (#{n.count})"
-  puts n.show
-
-  65.times { n = expand(n).result }
-  puts "#{n.level} (#{n.count})"
-  puts n.show
-
-  25.times { n = expand(n) }
-  26501365.times { |i| print("\r#{i}  #{Node.cache.size}           "); n = expand(n).result }
-  puts
-  puts "#{n.level} (#{n.count})"
-  # 3.times { n = expand(n) }
-  # puts show_helper(n,0)
-  # puts
-  # puts show_helper(n,1)
-  # puts
-  # puts show_helper(n,2)
-  # puts
-  # n2 = Node.n(empty(1),n,empty(1),empty(1))
-  # n3 = Node.n(empty(2), empty(2), n2, empty(2))
-  # n3 = expand(expand(expand(expand(n))))
-  # puts n3.show(0)
-  # puts
-  # puts n3.show(1)
-  # puts
-  # puts n3.show(2)
 end
