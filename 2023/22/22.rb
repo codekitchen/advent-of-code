@@ -14,13 +14,6 @@ class Brick
   def x = x1..x2
   def y = y1..y2
   def z = z1..z2
-  def extents
-    [@x,@y,@z]
-  end
-
-  def overlap?(o)
-    extents.zip(o.extents).all? {|a,b| a.overlap?(b) }
-  end
 end
 
 class Stack
