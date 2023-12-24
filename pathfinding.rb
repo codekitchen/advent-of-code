@@ -56,7 +56,7 @@ def pathfind(starts:, neighbors:, solved: nil, heuristic: nil, negatives: false)
       _, cost, u = q.shift # shift gives lowest cost, pop gives highest cost
       if negatives
         qc = qcounts[u] += 1
-        raise 'negative cycle detected' if qc > costs.size
+        raise "negative cycle detected at #{u}" if qc > costs.size
       end
       neighbors.(u).each do |v,v_cost|
         new_cost = (cost||costs[u]) + v_cost
