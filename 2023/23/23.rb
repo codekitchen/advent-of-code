@@ -1,77 +1,72 @@
 #!/usr/bin/env ruby --yjit
 require_relative '../../runner'
 require_relative '../../utils'
-require_relative '../../pathfinding'
 require_relative '../grid'
 
 SLOPES = { '>'=>:r, '<'=>:l, 'v'=>:d, '^'=>:u }
 
-CellWithPrev = Data.define(:cell, :prev)
+using Module.new { refine Grid::Cell do
+  def neighbor_paths
+    slope = SLOPES[get]
+    return [send(slope)].compact if slope
+    neighbors.select{_1!='#'}
+  end
+  def path? = get != '#'
+  def node? = path? && (SLOPES.keys.include?(get) || neighbor_paths.count > 2)
+end }
 
 def part1(input)
   grid = Grid.from_input input.read
-  startpos = grid.cells.find { _1=='.' }
-  starts = [CellWithPrev[startpos,nil]]
-  finishpos = grid[0.., grid.height-1].cells.find { _1=='.' }
-
-  neighbors = proc do |cwp|
-    cwp => [pos,prev]
-    dir = SLOPES[pos.get]
-    res = []
-    if dir
-      raise 'wtf' if pos.send(dir) == prev
-      res << [CellWithPrev[pos.send(dir),pos],-1]
-    else
-      res << [CellWithPrev[pos.u,pos],-1] if pos.u && pos.u != prev && !'#v'.include?(pos.u.get)
-      res << [CellWithPrev[pos.d,pos],-1] if pos.d && pos.d != prev && !'#^'.include?(pos.d.get)
-      res << [CellWithPrev[pos.l,pos],-1] if pos.l && pos.l != prev && !'#>'.include?(pos.l.get)
-      res << [CellWithPrev[pos.r,pos],-1] if pos.r && pos.r != prev && !'#<'.include?(pos.r.get)
-    end
-    res
-  end
-  pathfind(starts:, neighbors:, negatives:true) => prev:, costs:
-  best,cost = costs.select { _1.cell == finishpos }.sort_by(&:last).first
-  pos = best
-  until pos.cell == startpos
-    pos.cell.set('O')
-    # puts pos
-    # puts grid
-    pos = prev[pos]
-  end
-  pos.cell.set('S')
-  # puts grid
-  -cost
+  solve(grid)
 end
 
-P2 = Data.define(:cell, :prev, :intersections)
-
 def part2(input)
-  dry = input.read.gsub(/[<>v^]/, 'i')
-  grid = Grid.from_input dry
-  startpos = grid.cells.find { _1=='.' }
-  starts = [P2[startpos,nil,Set.new]]
-  finishpos = grid[0.., grid.height-1].cells.find { _1=='.' }
+  grid = Grid.from_input input.read
+  grid.cells.each {|c|c.set('.') if SLOPES.keys.include?(c.get)}
+  solve(grid)
+end
 
-  neighbors = proc do |cwp|
-    cwp => [pos,prev,intersections]
-    res = []
-    intersections += [pos] if pos == 'i'
-    res << [P2[pos.u,pos,intersections],-1] if pos.u && pos.u != '#' && pos.u != prev && !intersections.include?(pos.u)
-    res << [P2[pos.d,pos,intersections],-1] if pos.d && pos.d != '#' && pos.d != prev && !intersections.include?(pos.d)
-    res << [P2[pos.l,pos,intersections],-1] if pos.l && pos.l != '#' && pos.l != prev && !intersections.include?(pos.l)
-    res << [P2[pos.r,pos,intersections],-1] if pos.r && pos.r != '#' && pos.r != prev && !intersections.include?(pos.r)
-    res
+def solve(grid)
+  startpos = grid.cells.find { _1=='.' }
+  finishpos = grid[0.., grid.height-1].cells.find { _1=='.' }
+  # nodes are intersections/slopes, edges are paths between intersections
+  nodes = [startpos,finishpos] + grid.cells.select(&:node?)
+
+  edges = Hash.new {|k,v|k[v]=[]}
+  nodes.each do |node|
+    next if node == finishpos
+    seen = Set.new
+    q = [[node,0]]
+    until q.empty?
+      n2,dist = q.shift
+      seen << n2
+      n2.neighbor_paths.each do |np|
+        next if seen.include?(np)
+        if nodes.include?(np)
+          edges[node] << [np,dist+1]
+        else
+          q<<[np,dist+1]
+        end
+      end
+    end
   end
-  pathfind(starts:, neighbors:, negatives:true) => prev:, costs:
-  best,cost = costs.select { _1.cell == finishpos }.sort_by(&:last).first
-  pos = best
-  until pos.cell == startpos
-    pos.cell.set('O')
-    # puts pos
-    # puts grid
-    pos = prev[pos]
+
+  nodeids = edges.keys.each_with_index.to_h
+  targets = nodeids.map{|n,i|edges[n].map{|n2,c|[nodeids[n2],c]}}
+  startid = nodeids[startpos]
+  finishid = nodeids[finishpos]
+
+  seen = Set.new
+  dfs = lambda do |nodeid|
+    return 0 if nodeid == finishid
+    seen.add nodeid
+    found = targets[nodeid].map do |nextid,nextdist|
+      next if seen.include? nextid
+      res = dfs.(nextid)
+      res&.+nextdist
+    end.compact.max
+    seen.delete nodeid
+    found
   end
-  pos.cell.set('S')
-  # puts grid
-  -cost
+  dfs.(startid)
 end
