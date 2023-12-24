@@ -22,7 +22,7 @@ end
 
 def part2(input)
   grid = Grid.from_input input.read
-  grid.cells.each {|c|c.set('.') if SLOPES.keys.include?(c.get)}
+  grid.cells.each {|c|c.set('.') if c!='#'}
   solve(grid)
 end
 
@@ -51,21 +51,21 @@ def solve(grid)
     end
   end
 
-  nodeids = edges.keys.each_with_index.to_h
+  nodeids = nodes.each_with_index.to_h
   targets = nodeids.map{|n,i|edges[n].map{|n2,c|[nodeids[n2],c]}}
   startid = nodeids[startpos]
   finishid = nodeids[finishpos]
 
-  seen = Set.new
+  seen = Array.new(targets.size)
   dfs = lambda do |nodeid|
     return 0 if nodeid == finishid
-    seen.add nodeid
+    seen[nodeid] = true
     found = targets[nodeid].map do |nextid,nextdist|
-      next if seen.include? nextid
+      next if seen[nextid]
       res = dfs.(nextid)
       res&.+nextdist
     end.compact.max
-    seen.delete nodeid
+    seen[nodeid] = false
     found
   end
   dfs.(startid)
