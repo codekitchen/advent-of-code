@@ -133,6 +133,10 @@ class Grid
     self.class.new(height, width, data)
   end
 
+  def to_a
+    each.map(&:get)
+  end
+
   def to_s
     lasty = nil
     cells.map { |c|
@@ -151,6 +155,7 @@ class Grid
       n = width*height
       raise("bad input length: #{data.length}") if data && data.length != n
       @data = data || Array.new(n, seed)
+      @cells = Array.new(n)
     end
 
     def in_bounds?(x,y)
@@ -159,7 +164,8 @@ class Grid
 
     def at(x,y)
       return nil unless in_bounds?(x,y)
-      Cell.new(self, x, y, x+y*width)
+      pos = x+y*width
+      @cells[pos] ||= Cell.new(self, x, y, pos)
     end
 
     def inspect
@@ -189,8 +195,7 @@ class Grid
         x2 %= grid_data.width
         y2 %= grid_data.height
       end
-      return unless x2>=0 && y2>=0 && x2<grid_data.width && y2<grid_data.height
-      Cell.new(grid_data, x2, y2, x2+y2*grid_data.width)
+      grid_data.at(x2, y2)
     end
 
     def l = relative(-1,  0)
@@ -229,11 +234,9 @@ class Grid
 
     def inspect = "#<Grid::Cell [#{x},#{y}]>"
 
-    def hash = [pos, grid_data.object_id].hash
-    def eql?(o) = [pos,grid_data.object_id] == [o.pos,o.grid_data.object_id]
     def ==(o)
       if o.is_a?(Cell)
-        [pos,grid_data.object_id] == [o.pos,o.grid_data.object_id]
+        super
       else
         get == o
       end
@@ -257,4 +260,6 @@ if __FILE__ == $0
   copy[1,1] = 'A'
   assert_eq g.raw_data, '123456789'
   assert_eq copy.raw_data, '1234A6789'
+  assert_eq g.at(1,1), g.at(1,1).l.r
+  assert_eq g.at(1,1).object_id, g.at(1,1).l.r.object_id
 end
