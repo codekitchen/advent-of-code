@@ -11,31 +11,33 @@ TURNS = {
   l: :u,
 }
 
-Guard = Data.define(:pos, :dir) do
+Guard = Struct.new(:pos, :dir) do
   def step
-    dir = self.dir
-    dir = TURNS[dir] while self.pos.send(dir) == '#'
-    pos = self.pos.send(dir)
-    pos && Guard.new(pos, dir)
+    return unless present?
+    self.dir = TURNS[self.dir] while self.pos.send(self.dir) == '#'
+    self.pos = self.pos.send(self.dir)
   end
+
+  def present? = !!pos
 end
 
 def walk(guard)
   seen = Set.new
-  while guard
+  while guard.present?
     seen << guard.pos
-    guard = guard.step
+    guard.step
   end
   seen
 end
 
 def loop?(guard)
-  slow = guard
+  slow = guard.dup
   fast = guard
-  while fast
-    slow = slow.step
-    fast = fast.step&.step
-    return true if fast && slow == fast
+  while fast.present?
+    slow.step
+    fast.step
+    fast.step
+    return true if slow == fast
   end
   false
 end
@@ -50,9 +52,9 @@ def part2(input)
   map = Grid.from_input(input.read)
   start = map.find { _1 == '^' }
   guard = Guard.new(start, :u)
-  walk(guard).count do |obs|
+  walk(guard.dup).count do |obs|
     next unless obs == '.'
     obs.set '#'
-    loop?(guard).tap { obs.set '.' }
+    loop?(guard.dup).tap { obs.set '.' }
   end
 end
