@@ -53,7 +53,7 @@ class Grid
 
   def each
     return to_enum(__method__) unless block_given?
-    @yrange.each { |y| @xrange.each { |x| yield @data.data[x+y*@data.width] } }
+    @yrange.each { |y| @xrange.each { |x| yield @data.at(x,y) } }
   end
 
   def each_index
