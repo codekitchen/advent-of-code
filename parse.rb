@@ -65,6 +65,10 @@ class Parse
   end
 end
 
+def parser(input, ...)
+  Parse.new(...).lines(input)
+end
+
 if __FILE__ == $0
   def assert_eq(a,b)
     return if a == b
