@@ -182,6 +182,7 @@ class Grid
     def get
       grid_data.data[pos]
     end
+    alias value get
 
     def set(val)
       grid_data.data[pos] = val
