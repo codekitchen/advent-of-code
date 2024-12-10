@@ -49,11 +49,9 @@ def pathfind(starts:, neighbors:, solved: nil, heuristic: nil, negatives: false)
   starts = Array(starts)
   # [score+heuristic, score, node]
   q = PQueue.new(starts.map { [0, 0, _1] }) { |a,b| a[0] <=> b[0] }
-  costs = Hash.new(Float::INFINITY)
-  starts.each { costs[_1] = 0 }
   qcounts = Hash.new(0) # only used if negatives == true
-  prev = {}
-  edges = {}
+  results = {}
+  starts.each { results[_1] = History[0, nil, nil] }
   upper_bound = Float::INFINITY
 
   catch :done do
@@ -62,25 +60,25 @@ def pathfind(starts:, neighbors:, solved: nil, heuristic: nil, negatives: false)
       break unless u
       if negatives
         qc = qcounts[u] += 1
-        raise "negative cycle detected at #{u}" if qc > costs.size
+        raise "negative cycle detected at #{u}" if qc > results.size
       end
       throw :done if solved&.(u)
       neighbors.(u).each do |v,v_cost,edge|
-        new_cost = (cost||costs[u]) + v_cost
+        new_cost = (cost||results[u].cost) + v_cost
         next if new_cost > upper_bound
-        if negatives ? new_cost < costs[v] : costs[v] == Float::INFINITY
-          costs[v] = new_cost
-          prev[v] = u
-          edges[v] = edge if edge
+        if !results.key?(v) || (negatives && new_cost < results[v].cost)
+          results[v] = History[new_cost, u, edge]
           upper_bound = new_cost if solved&.(v) && new_cost < upper_bound
           h = heuristic&.(v) || 0
-          q << (negatives ? [h+new_cost, nil, v] : [h+new_cost, new_cost, v])
+          q << [h+new_cost, negatives ? nil : new_cost, v]
         end
       end
     end
   end
-  return { costs:, prev:, edges: }
+  return results
 end
+
+History = Data.define :cost, :prev, :edge
 
 Action = Data.define :state, :action, :cost
 
@@ -88,18 +86,18 @@ def best_plan(starts:, actions:, goal:)
   neighbors = ->state{
     actions.(state).map { |action| [action.state, action.cost, action.action] }
   }
-  pathfind(starts:, neighbors:, solved: goal) => { prev:, costs:, edges: }
-  puts "prev #{prev.size} costs #{costs.size} edges #{edges.size}"
+  results = pathfind(starts:, neighbors:, solved: goal)
+  puts "results #{results.size}"
 
-  final = costs.keys.find { |p| goal.(p) }
+  final = results.find { |p,_| goal.(p) }.last
+  cost = final.cost
   history = []
   actions = []
-  cost = costs[final]
   pos = final
   while pos
-    actions.unshift edges[pos]
+    actions.unshift pos.edge
     history.unshift pos
-    pos = prev[pos]
+    pos = results[pos.prev]
   end
   # rm null starting action
   actions.shift
