@@ -1,4 +1,4 @@
-require 'pqueue'
+require_relative 'pqueue'
 
 # call-seq:
 #   # Bellman-Ford
@@ -14,10 +14,6 @@ require 'pqueue'
 #
 # Depending on the arguments passed, this can be equivalent to
 # Dijkstra's, A*, or Bellman-Ford.
-#
-# @returns Hash<Node,Integer> The minimum cost from start to each given node.
-# Note this data may be incomplete if the function exits early due to the +solved+
-# argument.
 #
 # +neighbors+ proc must return [node,edge_cost] pairs for the given node.
 #
@@ -41,34 +37,72 @@ require 'pqueue'
 #
 # Can be faster than Dijkstra's with a good heuristic function. In this impl, the
 # correct solution will be found even if +heuristic+ isn't admissible --
-# though it will of course run slower.
+# unless you early terminate by passing in the solved argument.
+#
+# @returns :costs Hash<Node,Integer> The minimum cost from start to each given node.
+# Note this data may be incomplete if the function exits early due to the +solved+
+# argument.
+# @returns :prev Hash<Node,Node> A mapping from each node => prev_node for reconstructing
+# paths taken. e.g. `unfold(goal) { |node| prev[node] }.to_a.reverse` to get a path
+# to goal.
 def pathfind(starts:, neighbors:, solved: nil, heuristic: nil, negatives: false)
   starts = Array(starts)
   # [score+heuristic, score, node]
-  q = PQueue.new(starts.map { [0, 0, _1] })
+  q = PQueue.new(starts.map { [0, 0, _1] }) { |a,b| a[0] <=> b[0] }
   costs = Hash.new(Float::INFINITY)
   starts.each { costs[_1] = 0 }
-  qcounts = Hash.new(0)
+  qcounts = Hash.new(0) # only used if negatives == true
   prev = {}
+  edges = {}
+  upper_bound = Float::INFINITY
 
   catch :done do
-    until q.empty?
-      _, cost, u = q.shift # shift gives lowest cost, pop gives highest cost
+    loop do
+      _, cost, u = q.pop
+      break unless u
       if negatives
         qc = qcounts[u] += 1
         raise "negative cycle detected at #{u}" if qc > costs.size
       end
-      neighbors.(u).each do |v,v_cost|
+      throw :done if solved&.(u)
+      neighbors.(u).each do |v,v_cost,edge|
         new_cost = (cost||costs[u]) + v_cost
+        next if new_cost > upper_bound
         if negatives ? new_cost < costs[v] : costs[v] == Float::INFINITY
           costs[v] = new_cost
           prev[v] = u
-          throw :done if solved&.(v)
+          edges[v] = edge if edge
+          upper_bound = new_cost if solved&.(v) && new_cost < upper_bound
           h = heuristic&.(v) || 0
           q << (negatives ? [h+new_cost, nil, v] : [h+new_cost, new_cost, v])
         end
       end
     end
   end
-  return { costs:, prev: }
+  return { costs:, prev:, edges: }
+end
+
+Action = Data.define :state, :action, :cost
+
+def best_plan(starts:, actions:, goal:)
+  neighbors = ->state{
+    actions.(state).map { |action| [action.state, action.cost, action.action] }
+  }
+  pathfind(starts:, neighbors:, solved: goal) => { prev:, costs:, edges: }
+  puts "prev #{prev.size} costs #{costs.size} edges #{edges.size}"
+
+  final = costs.keys.find { |p| goal.(p) }
+  history = []
+  actions = []
+  cost = costs[final]
+  pos = final
+  while pos
+    actions.unshift edges[pos]
+    history.unshift pos
+    pos = prev[pos]
+  end
+  # rm null starting action
+  actions.shift
+
+  { history:, actions:, cost: }
 end
