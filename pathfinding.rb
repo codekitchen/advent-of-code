@@ -1,4 +1,4 @@
-require_relative 'pqueue'
+require_relative 'wheel'
 
 # call-seq:
 #   # Bellman-Ford
@@ -47,8 +47,9 @@ require_relative 'pqueue'
 # to goal.
 def pathfind(starts:, neighbors:, solved: nil, heuristic: nil, negatives: false)
   starts = Array(starts)
+  q = Wheel.new
   # [score+heuristic, score, node]
-  q = PQueue.new(starts.map { [0, 0, _1] }) { |a,b| a[0] <=> b[0] }
+  starts.each { q.push([0, 0, _1], 0) }
   qcounts = Hash.new(0) # only used if negatives == true
   results = {}
   starts.each { results[_1] = History[0, nil, nil] }
@@ -70,7 +71,7 @@ def pathfind(starts:, neighbors:, solved: nil, heuristic: nil, negatives: false)
           results[v] = History[new_cost, u, edge]
           upper_bound = new_cost if solved&.(v) && new_cost < upper_bound
           h = heuristic&.(v) || 0
-          q << [h+new_cost, negatives ? nil : new_cost, v]
+          q.push([h+new_cost, negatives ? nil : new_cost, v], h+new_cost)
         end
       end
     end

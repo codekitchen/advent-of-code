@@ -18,6 +18,7 @@ class PQueue
     @q.pop
   end
 
+  def peek = @q[0]
   def empty? = @q.empty?
   def size = @q.size
   alias length size
