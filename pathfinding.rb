@@ -65,7 +65,7 @@ def pathfind(starts:, neighbors:, solved: nil, heuristic: nil, negatives: false)
       end
       throw :done if solved&.(u)
       neighbors.(u).each do |v,v_cost,edge|
-        new_cost = (cost||results[u].cost) + v_cost
+        new_cost = (cost||results[u].cost) + (v_cost||1)
         next if new_cost > upper_bound
         if !results.key?(v) || (negatives && new_cost < results[v].cost)
           results[v] = History[new_cost, u, edge]
