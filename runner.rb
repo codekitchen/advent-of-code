@@ -29,9 +29,23 @@ def inputs_for(partname)
   end.sort_by { |name,f| [name =~ /full/ ? 1 : 0, name] }
 end
 
+Result = Struct.new(:name, :called) do
+  def method_missing(part, result)
+    puts "#{part} #{self.name}", result.inspect
+    self.called = true
+  end
+end
+
 def do_run(part, name, file)
   dumpfile = File.open("viz/#{$day}_#{part}_#{name}.dump", "wb") if $viz
-  run = Fiber.new { send(part, file) }
+
+  takes_result = method(part).arity > 1
+  if takes_result
+    result_obj = Result.new(name, false)
+    run = Fiber.new { send(part, file, result_obj) }
+  else
+    run = Fiber.new { send(part, file) }
+  end
   result = loop do
     nxt = run.resume
     if run.alive?
@@ -40,7 +54,7 @@ def do_run(part, name, file)
       break nxt
     end
   end
-  puts "#{part} #{name}", result.inspect
+  puts "#{part} #{name}", result.inspect unless takes_result
 end
 
 at_exit do
@@ -53,5 +67,9 @@ at_exit do
       next
     end
     files.each { |name, file| do_run(part, name, file) }
+  end
+  private_methods.grep(/^run$/).each do |runner|
+    files = inputs_for('all')
+    files.each { |name, file| do_run('run', name, file) }
   end
 end
