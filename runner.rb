@@ -20,7 +20,7 @@ def inputs_for(partname)
   INPUTS.filter_map do |name,f|
     next if $runinput && $runinput.grep(name).empty?
     if f.empty?
-      warn "skipping empty input file #{f.basename}"
+      # warn "skipping empty input file #{f.basename}"
       next
     end
     if (name !~ /part/ || name =~ /#{partname}/)

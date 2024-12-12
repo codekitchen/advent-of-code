@@ -33,6 +33,7 @@ class Grid
   end
 
   def self.from_input(input, &mapper)
+    input = input.read if input.respond_to?(:read)
     input = input.lines.map(&:chomp)
     data = input.join
     data = data.chars.map!(&mapper) if mapper
@@ -215,6 +216,14 @@ class Grid
       yield r unless x+1 == grid_data.width
       yield u unless y == 0
       yield d unless y+1 == grid_data.height
+    end
+
+    def neighbors_with_dir
+      return to_enum(__method__) unless block_given?
+      yield [l, :l]
+      yield [r, :r]
+      yield [u, :u]
+      yield [d, :d]
     end
 
     def neighbors_with_diag
