@@ -3,10 +3,11 @@
 # parse("{loc} = ({l}, {r})") returns a regexp to capture those groups
 # parse("{id}: {vals*}") will split vals to an array
 class Parse
-  def initialize(spec, repeat: nil, hash: false)
+  def initialize(spec, repeat: nil, hash: false, nums: :to_i)
     @matchers = {}
     @repeat = repeat
     @hash = hash
+    @nums = nums
     s = Regexp.escape(spec).gsub(/\\\{[^}]+\\\}/) do |m|
       info = {}
       m = m.tr("\\","")
@@ -56,7 +57,7 @@ class Parse
     when Array
       val.map { convert_numbers(_1) }
     when %r{^-?[0-9]+$}
-      val.to_i
+      val.send(@nums)
     when %r{^-?[.0-9]+$}
       val.to_f
     else

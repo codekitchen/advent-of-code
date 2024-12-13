@@ -2,8 +2,7 @@
 require_relative '../../runner'
 require_relative '../../utils'
 
-def part1(input)
+def run(input, results)
+  results.part1 nil
+  # results.part2 nil
 end
-
-# def part2(input)
-# end
