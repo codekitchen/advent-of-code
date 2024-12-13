@@ -1,0 +1,35 @@
+import util.
+
+main =>
+  File = "full.txt",
+  Stones = read_file_lines(File).first.split.map(to_int),
+  member(Part, [1,2]),
+  Steps = cond(Part==1,25,75),
+  println(Steps),
+  Total = sum([evolve(S, Steps): S in Stones]),
+  println(Total),
+  Part == 2.
+
+table
+evolve(Stone, Steps) = N =>
+  if (Steps == 0) then
+    N = 1
+  else
+    Stones = step(Stone),
+    N = sum([evolve(S, Steps-1): S in Stones])
+  end.
+
+step(S) = Res =>
+  if (S == 0) then
+    Res = [1]
+  elseif (S.to_string.len.even) then
+    Str = S.to_string,
+    Len = Str.len,
+    Half = Len // 2,
+    Res = [
+      Str[1..Half].to_int,
+      Str[Half+1..Len].to_int
+    ]
+  else
+    Res = [S * 2024]
+  end

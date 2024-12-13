@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby --yjit
 require_relative '../../runner'
+require_relative '../../utils'
 
 def run(input, result)
   stones = input.read.split.map(&:to_i)
@@ -8,10 +9,10 @@ def run(input, result)
   result.part2 stones.sum { |stone| evolve stone, 75 }
 end
 
-CACHE = {}
+tabler [true, true],
 def evolve(num, steps)
   return 1 if steps == 0
-  CACHE[[num, steps]] ||= step(num).sum { evolve _1, steps-1 }
+  step(num).sum { evolve _1, steps-1 }
 end
 
 def step(stone)
