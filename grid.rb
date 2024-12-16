@@ -4,8 +4,8 @@ require_relative 'utils'
 class Grid
   include Enumerable
 
-  DIRS = %w[l r u d]
-  DIRS8 = %w[l r u d lu ld ru rd]
+  DIRS = %i[l r u d]
+  DIRS8 = %i[l r u d lu ld ru rd]
 
   attr_reader :xrange, :yrange
 
@@ -60,6 +60,11 @@ class Grid
   def each_index
     return to_enum(__method__) unless block_given?
     @yrange.each { |y| @xrange.each { |x| yield x,y } }
+  end
+
+  def find(item=nil, &blk)
+    blk ||= ->i { i == item }
+    super(&blk)
   end
 
   def [](*)
@@ -243,10 +248,11 @@ class Grid
     end
 
     def inspect = "#<Grid::Cell [#{x},#{y}]>"
+    def hash = pos.hash
 
     def ==(o)
       if o.is_a?(Cell)
-        super
+        pos == o.pos
       else
         get == o
       end
