@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby --yjit
+require 'z3'
 require_relative '../../runner'
 require_relative '../../utils'
 
@@ -6,7 +7,16 @@ FORMAT = "{name}: capacity {a}, durability {b}, flavor {c}, texture {d}, calorie
 
 def run(input, results)
   ing = parser input, FORMAT
-  amts = [44, 56]
+  # amts = [44, 56]
+
+  solver = Z3::Optimize.new
+  vars = ing.map { |name,*| Z3.Int(name) }
+  targets = [Z3.Int('cap'),Z3.Int('dur'),Z3.Int('fla'),Z3.Int('tex'),]
+  attrs =
+    Z3.And(vars.each_with_index.sum { |v,i| v * ing[i][1] } == targets[0],
+    vars.each_with_index.sum { |v,i| v * ing[i][2] } == targets[1])
+
+  p solver.maximize attrs
 
   # this is linear algebra, solving for the max value in a system of equations
   # except what about negatives becoming zero?
