@@ -1,7 +1,10 @@
 GEM
   remote: https://rubygems.org/
   specs:
+    ffi (1.17.0)
     minitest (5.20.0)
+    z3 (0.0.20230311)
+      ffi (~> 1.9)
 
 PLATFORMS
   arm64-darwin-23
@@ -9,9 +12,12 @@ PLATFORMS
 
 DEPENDENCIES
   minitest
+  z3 (~> 0.0.20230311)
 
 CHECKSUMS
+  ffi (1.17.0) sha256=51630e43425078311c056ca75f961bb3bda1641ab36e44ad4c455e0b0e4a231c
   minitest (5.20.0) sha256=a3faf26a757ced073aaae0bd10481340f53e221a4f50d8a6033591555374752e
+  z3 (0.0.20230311) sha256=bb2a8c38a8d50522b1e7762ccff7d31c2ed2fe15151895c828c68df78b62d79a
 
 BUNDLED WITH
-   2.5.22
+   2.6.0.dev
