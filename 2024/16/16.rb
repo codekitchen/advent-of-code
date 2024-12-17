@@ -25,32 +25,39 @@ def run(input, results)
 
   q = PQueue.new { |a,b| a[1] <=> b[1] }
   qstart = Pos[start, :r]
-  # node, cost, path
-  q.push([qstart, 0, [qstart]])
-  solutions = []
-  visited = Hash.new(Float::INFINITY)
-  upper_bound = Float::INFINITY
+  # node, cost
+  q.push([qstart, 0])
+  prev = {}
+  dist = Hash.new(Float::INFINITY)
 
   until q.empty?
-    u, cost, path = q.pop
-    if u.cell == finish
-      solutions << [cost, path]
-      upper_bound = cost if upper_bound > cost
-      next
-    end
-    next if upper_bound < cost
+    u, cost = q.pop
     neighbors.(u) do |v,v_cost|
       new_cost = cost + v_cost
-      next if visited[v] < new_cost
-      visited[v] = new_cost
-      q.push([v, new_cost, path + [v]])
+      prev_cost = dist[v]
+      next if prev_cost < new_cost
+      if prev_cost > new_cost
+        prev[v] = [u]
+        dist[v] = new_cost
+        q.push([v, new_cost])
+      else
+        prev[v] ||= []
+        prev[v] << u
+      end
     end
   end
 
-  best = solutions.map(&:first).min
+  finishes = Grid::DIRS.map { |d| Pos[finish, d] }
+  best = finishes.map { |f| dist[f] || Float::INFINITY }.min
   results.part1 best
 
   on_path = Set[]
-  solutions.select { |c,_| c == best }.each { |_,p| on_path.merge(p.map(&:cell)) }
-  results.part2 on_path.size
+  q = finishes
+  until q.empty?
+    c = q.pop
+    next if on_path.include?(c)
+    on_path << c
+    prev[c].each { q << _1 }
+  end
+  results.part2 on_path.map(&:cell).uniq.size
 end
