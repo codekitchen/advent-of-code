@@ -32,7 +32,17 @@ def tabler(spec, meth)
   cache = {}
   define_method(:"#{meth}_with_tabler") do |*args|
     observed = spec.zip(args).filter_map { |s,a| s && a }
-    cache[observed] ||= send(:"#{meth}_without_tabler", *args)
+    cache.key?(observed) ? cache[observed] : cache[observed] = send(:"#{meth}_without_tabler", *args)
   end
   define_method meth, method(:"#{meth}_with_tabler")
+end
+
+# simple "memoize on all params"
+def memoize(meth)
+  define_method :"#{meth}_without_memoize", method(meth)
+  cache = {}
+  define_method(:"#{meth}_with_memoize") do |*args|
+    cache.key?(args) ? cache[args] : cache[args] = send(:"#{meth}_without_memoize", *args)
+  end
+  define_method meth, method(:"#{meth}_with_memoize")
 end
