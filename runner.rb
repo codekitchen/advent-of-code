@@ -31,7 +31,7 @@ end
 
 Result = Struct.new(:name, :called) do
   def method_missing(part, result)
-    puts "#{part} #{self.name}", result.inspect
+    puts "#{part} #{self.name}", result.inspect unless result.nil?
     self.called = true
   end
 end
