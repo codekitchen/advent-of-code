@@ -261,7 +261,7 @@ class Grid
 end
 
 if __FILE__ == $0
-  puts "running Grid tests"
+  require_relative 'asserts'
   g = Grid.new(3,3,'123456789')
   assert_eq g.to_a, '123456789'.split(//)
   assert_eq g.rows.map(&:to_a), [%w[1 2 3], %w[4 5 6], %w[7 8 9]]
@@ -278,4 +278,5 @@ if __FILE__ == $0
   assert_eq copy.raw_data, '1234A6789'
   assert_eq g.at(1,1), g.at(1,1).l.r
   assert_eq g.at(1,1).object_id, g.at(1,1).l.r.object_id
+  puts "tests passed"
 end

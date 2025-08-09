@@ -63,7 +63,7 @@ class PQueue
 end
 
 if __FILE__ == $0
-  require_relative 'utils'
+  require_relative 'asserts'
   q = PQueue.new
   [5, 3, 9, 6, 4].each { q << _1 }
   assert_eq q.pop, 3
@@ -76,4 +76,5 @@ if __FILE__ == $0
   assert_eq q.pop, 9
   assert_eq q.pop, 11
   assert_eq q.pop, nil
+  puts "tests passed"
 end

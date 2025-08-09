@@ -1,13 +1,5 @@
+require_relative 'asserts'
 require_relative 'parse'
-
-def assert_eq(a,b)
-  return if a == b
-  raise "#{a.inspect} != #{b.inspect}"
-end
-def assert_neq(a,b)
-  return if a != b
-  raise "#{a.inspect} == #{b.inspect}"
-end
 
 # Enumerable#find, but return the block value rather than the original value
 module Enumerable
