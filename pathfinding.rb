@@ -49,32 +49,34 @@ def pathfind(starts:, neighbors:, solved: nil, heuristic: nil, negatives: false,
   starts = Array(starts)
   q = Wheel.new
   # [node, cost]
-  starts.each { q.push([_1, 0], 0) }
+  starts.each { q.push(_1, 0) }
   qcounts = Hash.new(0) # only used if negatives == true
   results = {}
   starts.each { results[_1] = History[0, nil, nil] }
+  unless neighbors.parameters in [*, [:block, _]]
+    nold = neighbors
+    neighbors = ->(u,&cb) { nold.(u).each { |n| cb.(n) } }
+  end
 
-  catch :done do
-    loop do
-      u, cost = q.pop
-      break unless u
-      if negatives
-        qc = qcounts[u] += 1
-        raise "negative cycle detected at #{u}" if qc > results.size
-      end
-      throw :done if solved&.(u)
-      neighbors.(u) do |v,v_cost,edge|
-        new_cost = (cost||results[u].cost) + (v_cost||1)
-        previously = results[v]
-        next if previously && previously.cost < new_cost
-        if !previously || previously.cost > new_cost
-          results[v] = all_routes ? History[new_cost, [u], [edge]] : History[new_cost, u, edge]
-          h = heuristic&.(v) || 0
-          q.push([v, negatives ? nil : new_cost], h+new_cost)
-        elsif all_routes
-          previously.prev << u
-          previously.edge << edge
-        end
+  loop do
+    u = q.pop
+    break unless u
+    if negatives
+      qc = qcounts[u] += 1
+      raise "negative cycle detected at #{u}" if qc > results.size
+    end
+    return results if solved&.(u)
+    neighbors.(u) do |v,v_cost,edge|
+      new_cost = (results[u].cost) + (v_cost||1)
+      previously = results[v]
+      next if previously && previously.cost < new_cost
+      if !previously || previously.cost > new_cost
+        results[v] = all_routes ? History[new_cost, [u], [edge]] : History[new_cost, u, edge]
+        h = heuristic&.(v) || 0
+        q.push(v, h+new_cost)
+      elsif all_routes
+        previously.prev << u
+        previously.edge << edge
       end
     end
   end
@@ -83,16 +85,21 @@ end
 
 History = Data.define :cost, :prev, :edge
 
-Action = Data.define :state, :action, :cost
+Action = Data.define :state, :action, :cost do
+  def to_a
+    [state, cost, action]
+  end
+end
 
 def best_plan(starts:, actions:, goal:)
-  neighbors = ->state{
-    actions.(state).map { |action| [action.state, action.cost, action.action] }
+  neighbors = ->(s, &cb) {
+    actions.(s) { cb.(*it) }
   }
   results = pathfind(starts:, neighbors:, solved: goal)
   puts "results #{results.size}"
 
-  final = results.find { |p,_| goal.(p) }.last
+  final = results.find { |p,_| goal.(p) }&.last
+  raise "no solution found" if final.nil?
   cost = final.cost
   history = []
   actions = []

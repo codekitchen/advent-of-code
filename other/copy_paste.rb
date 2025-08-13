@@ -5,6 +5,7 @@
 # picat. This bums me out. Originally it took 12 minutes before I optimized.
 # I think I'm approaching the limits of what I can do in pure ruby to optimize, and I'm hitting
 # constant factors.
+# (now takes 10s with ruby 3.4 and the latest yjit)
 
 require_relative '../pathfinding'
 
@@ -13,14 +14,14 @@ State = Data.define(:doc, :clipboard)
 res = best_plan(
   starts: State[1,0],
   goal: ->s{ s.doc == 100_001 },
-  actions: ->s{[
+  actions: ->(s, &cb){
     # paste
-    Action[action: 'P', state: State[s.doc+s.clipboard, s.clipboard], cost: 1],
+    cb.(Action[action: 'P', state: State[s.doc+s.clipboard, s.clipboard], cost: 1])
     # select-and-copy
-    Action[action: 'SC', state: State[s.doc, s.doc], cost: 2],
+    cb.(Action[action: 'SC', state: State[s.doc, s.doc], cost: 2])
     # delete a char
-    s.doc > 0 ? Action[action: 'D', state: State[s.doc-1, s.clipboard], cost: 1] : nil,
-  ].compact},
+    cb.(Action[action: 'D', state: State[s.doc-1, s.clipboard], cost: 1]) if s.doc > 0
+  },
 )
 
 puts "cost: #{res[:cost]}"
