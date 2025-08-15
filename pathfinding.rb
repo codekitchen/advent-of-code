@@ -45,13 +45,11 @@ require_relative 'pqueue_bucketed'
 # @returns :prev Hash<Node,Node> A mapping from each node => prev_node for reconstructing
 # paths taken. e.g. `unfold(goal) { |node| prev[node] }.to_a.reverse` to get a path
 # to goal.
-def pathfind(starts:, neighbors:, solved: nil, heuristic: nil, negatives: false, all_routes: false)
-  starts = Array(starts)
+def pathfind(starts:, neighbors:, solved: nil, heuristic: nil, negatives: false)
   q = PQueueBucketed.new
-  starts.each { q.push(_1, 0) }
-  qcounts = Hash.new(0) # only used if negatives == true
   results = {}
-  starts.each { results[_1] = History[0, nil, nil] }
+  Array(starts).each { q.push(_1, 0); results[_1] = History[0, nil, nil] }
+  qcounts = Hash.new(0) # only used if negatives == true
   unless neighbors.parameters in [*, [:block, _]]
     nold = neighbors
     neighbors = ->(u,&cb) { nold.(u).each { |n| cb.(n) } }
@@ -68,12 +66,9 @@ def pathfind(starts:, neighbors:, solved: nil, heuristic: nil, negatives: false,
       previously = results[v]
       next if previously && previously.cost < new_cost
       if !previously || previously.cost > new_cost
-        results[v] = all_routes ? History[new_cost, [u], [edge]] : History[new_cost, u, edge]
+        results[v] = History[new_cost, u, edge]
         h = heuristic&.(v) || 0
         q.push(v, h+new_cost)
-      elsif all_routes
-        previously.prev << u
-        previously.edge << edge
       end
     end
   end
