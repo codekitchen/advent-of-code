@@ -1,24 +1,31 @@
 class PQueue
-  def initialize(els=[], &cmp)
-    @q = [].replace(Array(els))
-    @cmp = cmp || ->(a,b) { a <=> b }
-    heapify
+  Node = Data.define(:item, :priority) do
+    def to_a
+      [item, priority]
+    end
   end
 
-  def push(item)
-    @q.push item
+  def initialize
+    @q = []
+  end
+
+  def push(item, priority)
+    @q.push Node[item, priority]
     up(@q.length-1)
   end
-  alias :<< push
 
-  def pop
+  def pop_node
     n = @q.length-1
     swap(0,n)
     down(0,n)
     @q.pop
   end
 
-  def peek = @q[0]
+  def pop = pop_node&.item
+  def pop2 = pop_node&.to_a
+
+  def peek = @q[0]&.item
+  def peek2 = @q[0]&.to_a
   def empty? = @q.empty?
   def size = @q.size
   alias length size
@@ -29,7 +36,7 @@ class PQueue
   end
 
   def cmp(i,j)
-    @cmp.(@q[i], @q[j])
+    @q[i].priority <=> @q[j].priority
   end
 
   # move the node up the tree as far as needed
@@ -65,15 +72,15 @@ end
 if __FILE__ == $0
   require_relative 'asserts'
   q = PQueue.new
-  [5, 3, 9, 6, 4].each { q << _1 }
+  [5, 3, 9, 6, 4].each { q.push(_1, _1) }
   assert_eq q.pop, 3
   assert_eq q.pop, 4
   assert_eq q.pop, 5
   assert_eq q.pop, 6
-  q << 11
-  q << 3
+  q.push 11, 11
+  q.push 3, 3
   assert_eq q.pop, 3
-  assert_eq q.pop, 9
+  assert_eq q.pop2, [9, 9]
   assert_eq q.pop, 11
   assert_eq q.pop, nil
   puts "tests passed"

@@ -34,14 +34,13 @@ def make_grid w, h, bytes
 end
 
 def pathfind start
-  q = PQueue.new { |a,b| a[1] <=> b[1] }
-  # node, cost
-  q.push([start, 0])
+  q = PQueue.new
+  q.push(start, 0)
   prev = {}
   dist = Hash.new(Float::INFINITY)
 
   until q.empty?
-    u, cost = q.pop
+    u, cost = q.pop2
     u.neighbors.reject { it == '#' }.each do |v|
       new_cost = cost + 1
       prev_cost = dist[v]
@@ -49,7 +48,7 @@ def pathfind start
       if prev_cost > new_cost
         prev[v] = [u]
         dist[v] = new_cost
-        q.push([v, new_cost])
+        q.push(v, new_cost)
       else
         prev[v] ||= []
         prev[v] << u

@@ -23,15 +23,14 @@ def run(input, results)
     cb.([Pos[newcell, p.facing], 1]) if newcell != '#'
   }
 
-  q = PQueue.new { |a,b| a[1] <=> b[1] }
+  q = PQueue.new
   qstart = Pos[start, :r]
-  # node, cost
-  q.push([qstart, 0])
+  q.push(qstart, 0)
   prev = {}
   dist = Hash.new(Float::INFINITY)
 
   until q.empty?
-    u, cost = q.pop
+    u, cost = q.pop2
     neighbors.(u) do |v,v_cost|
       new_cost = cost + v_cost
       prev_cost = dist[v]
@@ -39,7 +38,7 @@ def run(input, results)
       if prev_cost > new_cost
         prev[v] = [u]
         dist[v] = new_cost
-        q.push([v, new_cost])
+        q.push(v, new_cost)
       else
         prev[v] ||= []
         prev[v] << u

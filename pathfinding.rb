@@ -1,4 +1,4 @@
-require_relative 'wheel'
+require_relative 'pqueue_bucketed'
 
 # call-seq:
 #   # Bellman-Ford
@@ -47,8 +47,7 @@ require_relative 'wheel'
 # to goal.
 def pathfind(starts:, neighbors:, solved: nil, heuristic: nil, negatives: false, all_routes: false)
   starts = Array(starts)
-  q = Wheel.new
-  # [node, cost]
+  q = PQueueBucketed.new
   starts.each { q.push(_1, 0) }
   qcounts = Hash.new(0) # only used if negatives == true
   results = {}
@@ -58,9 +57,7 @@ def pathfind(starts:, neighbors:, solved: nil, heuristic: nil, negatives: false,
     neighbors = ->(u,&cb) { nold.(u).each { |n| cb.(n) } }
   end
 
-  loop do
-    u = q.pop
-    break unless u
+  while u = q.pop
     if negatives
       qc = qcounts[u] += 1
       raise "negative cycle detected at #{u}" if qc > results.size
