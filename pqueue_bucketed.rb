@@ -33,6 +33,19 @@ class PQueueBucketed
       return bucket.pop
     end
   end
+
+  def pop2
+    loop do
+      bucket, priority = @q.peek2
+      return nil unless bucket
+      if bucket.empty?
+        @q.pop
+        @buckets.delete priority
+        next
+      end
+      return bucket.pop, priority
+    end
+  end
 end
 
 if __FILE__ == $0

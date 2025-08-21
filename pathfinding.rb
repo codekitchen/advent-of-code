@@ -1,4 +1,5 @@
 require_relative 'pqueue_bucketed'
+require_relative 'pqueue_implicit'
 
 # call-seq:
 #   # Bellman-Ford
@@ -46,25 +47,35 @@ require_relative 'pqueue_bucketed'
 # paths taken. e.g. `unfold(goal) { |node| prev[node] }.to_a.reverse` to get a path
 # to goal.
 def pathfind(starts:, neighbors:, solved: nil, heuristic: nil, negatives: false)
-  q = PQueueBucketed.new
+  q = PQueueImplicit.new
   results = {}
-  Array(starts).each { q.push(_1, 0); results[_1] = History[0, nil, nil] }
+  Array(starts).each { q.push(_1, 0) }
   qcounts = Hash.new(0) # only used if negatives == true
   unless neighbors.parameters in [*, [:block, _]]
     nold = neighbors
     neighbors = ->(u,&cb) { nold.(u).each { |n| cb.(n) } }
   end
 
-  while u = q.pop
+  loop do
+    u, cost = q.pop2
+    break unless u
     if negatives
       qc = qcounts[u] += 1
       raise "negative cycle detected at #{u}" if qc > results.size
     end
-    return results if solved&.(u)
+    if solved&.(u)
+      actions = []
+      states = []
+      while s = results[u]
+        actions.unshift s.edge
+        states.unshift u
+        u = s.prev
+      end
+      return { actions:, states:, cost: }
+    end
     neighbors.(u) do |v,v_cost,edge|
-      new_cost = (results[u].cost) + (v_cost||1)
+      new_cost = cost + (v_cost||1)
       previously = results[v]
-      next if previously && previously.cost < new_cost
       if !previously || previously.cost > new_cost
         results[v] = History[new_cost, u, edge]
         h = heuristic&.(v) || 0
@@ -72,7 +83,7 @@ def pathfind(starts:, neighbors:, solved: nil, heuristic: nil, negatives: false)
       end
     end
   end
-  return results
+  return solved ? nil : results
 end
 
 History = Data.define :cost, :prev, :edge
@@ -87,22 +98,6 @@ def best_plan(starts:, actions:, goal:)
   neighbors = ->(s, &cb) {
     actions.(s) { cb.(*it) }
   }
-  results = pathfind(starts:, neighbors:, solved: goal)
-  puts "results #{results.size}"
-
-  final = results.find { |p,_| goal.(p) }&.last
-  raise "no solution found" if final.nil?
-  cost = final.cost
-  history = []
-  actions = []
-  pos = final
-  while pos
-    actions.unshift pos.edge
-    history.unshift pos
-    pos = results[pos.prev]
-  end
-  # rm null starting action
-  actions.shift
-
-  { history:, actions:, cost: }
+  pathfind(starts:, neighbors:, solved: goal) => actions:, states:, cost:
+  { history: states, actions:, cost: }
 end
