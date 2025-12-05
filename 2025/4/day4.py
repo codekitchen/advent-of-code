@@ -1,39 +1,21 @@
-import itertools
-import sys
+from sys import stdin
+from itertools import product, count
 
-
-input = open(sys.argv[1]).read()
-lines = input.splitlines()
-w, h = len(lines[0]), len(lines)
+NEIGHBORS = frozenset(product([-1, 0, 1], repeat=2)) - {(0, 0)}
 grid = {
-    (x, y) for y, line in enumerate(lines) for x, char in enumerate(line) if char == "@"
+    (x, y)
+    for y, line in enumerate(stdin.readlines())
+    for x, char in enumerate(line)
+    if char == "@"
 }
 
-
-def get_accessible(grid):
-    accessible = set()
-    for y in range(h):
-        for x in range(w):
-            if (x, y) in grid:
-                neighbors = 0
-                for dx, dy in itertools.product([-1, 0, 1], repeat=2):
-                    if dx == 0 and dy == 0:
-                        continue
-                    if (x + dx, y + dy) in grid:
-                        neighbors += 1
-                if neighbors < 4:
-                    accessible.add((x, y))
-    return accessible
-
-
-accessible = get_accessible(grid)
-print("accessible on first pass:", len(accessible))
-
-removed = 0
-passes = 0
-while accessible:
-    passes += 1
-    removed += len(accessible)
+print("round\tremoved\ttotal")
+round, total = count(1), 0
+while accessible := {
+    (x, y)
+    for (x, y) in grid
+    if len(grid & {(dx + x, dy + y) for dx, dy in NEIGHBORS}) < 4
+}:
     grid -= accessible
-    accessible = get_accessible(grid)
-print("total removed:", removed, "in", passes, "passes")
+    total += len(accessible)
+    print(f"{next(round)}\t{len(accessible)}\t{total}")
