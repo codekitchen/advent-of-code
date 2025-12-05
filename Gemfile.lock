@@ -9,6 +9,7 @@ GEM
 PLATFORMS
   arm64-darwin-23
   arm64-darwin-24
+  arm64-darwin-25
 
 DEPENDENCIES
   minitest
@@ -20,4 +21,4 @@ CHECKSUMS
   z3 (0.0.20230311) sha256=bb2a8c38a8d50522b1e7762ccff7d31c2ed2fe15151895c828c68df78b62d79a
 
 BUNDLED WITH
-   2.6.0.dev
+   2.6.9
